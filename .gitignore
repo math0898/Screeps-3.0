@@ -1,0 +1,11 @@
+screeps.json
+docs/
+node_modules/
+book.json
+package-lock.json
+package.json
+rollup.config.js
+screeps.sample.json
+tsconfig.json
+tsconfig.test.json
+test/
