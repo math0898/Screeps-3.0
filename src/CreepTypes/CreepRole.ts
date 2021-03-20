@@ -131,7 +131,7 @@ export abstract class Creep_Prototype {
     } else creep.memory.emptyStructure = undefined; //O(5) -> O(11 + 3n)
     }
   }
-  //TODO Runtime analysis
+  // TODO: Runtime analysis
   /**
    * Makes the creep look for and pickup nearby resources. Defaults to energy
    * however one can be specified in the function call.

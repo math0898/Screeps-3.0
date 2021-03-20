@@ -10,8 +10,8 @@ import { struc_Room } from "Room";
 import { Queue, priority } from "Queue";
 import { StatsManager} from "Stats";
 //Import the tasks
-import { init_Rooms, print_Rooms, update_Rooms } from "tasks/Room_Tasks";
-import { print_Stats, collect_Stats} from "tasks/Stats_Tasks";
+import { init_Rooms, print_Rooms, update_Rooms } from "Room";
+import { print_Stats, collect_Stats} from "Stats";
 import { run_CreepManager, creepAI_CreepManager } from "CreepManager";
 import { Colony, Run_Colony } from "Colony";
 
@@ -23,20 +23,6 @@ var rooms: struc_Room[];
 var statsManager: StatsManager = new StatsManager();
 //A colony array holding all of the colonies
 var colonies: Colony[];
-
-/**
- * This is a helper method for main to determine when to run each queue level.
- */
-function runQueueHelper(){
-  //We always run the highest priority.
-  queue.runQueue(priority.HIGH);
-  //Check if we're further than 50% from our cap and run medium if we are
-  if(Game.cpu.getUsed() < Game.cpu.limit * 0.50) queue.runQueue(priority.MEDIUM);
-  //Check if we're further than 75% from our cap and run low if we are
-  if(Game.cpu.getUsed() < Game.cpu.limit * 0.25) queue.runQueue(priority.LOW);
-  //Check if we're further than 90% from our cap and run no priority
-  if(Game.cpu.getUsed() < Game.cpu.limit * 0.10) queue.runQueue(priority.NONE);
-}
 
 /**
  * This is the main loop for the program. Expect clean concise code, anything
@@ -75,5 +61,5 @@ export const loop = ErrorMapper.wrapLoop(() => { //Keep this main line
   queue.queueAdd(new print_Stats());
 
   queue.printQueue();
-  runQueueHelper();
+  queue.runQueue();
 });

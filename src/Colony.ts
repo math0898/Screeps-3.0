@@ -1,5 +1,5 @@
 //Import tasks
-import { task, template } from "tasks/task";
+import { task, template } from "task";
 //Import rooms
 import { struc_Room } from "Room";
 //Import the spawn manager

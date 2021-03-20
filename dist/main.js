@@ -2332,13 +2332,9 @@ class ErrorMapper {
 ErrorMapper.cache = {};
 
 /**
- * This file implements the Queue class which handles tasks in the priority that
- * they should be run in. The queue handles mostly expensive tasks that should
- * be saved for ticks which don't have as much running.
- * @Author Sugaku, math0898
- */
-/**
- * This enum holds the cost levels that the queue can run at.
+ * This enum cotains a couple number threasholds which are used later in this
+ * file and in main.ts to determine how urgent a task may be. High number means
+ * more urgency.
  */
 var priority;
 (function (priority) {
@@ -2348,90 +2344,95 @@ var priority;
     priority[priority["NONE"] = 0] = "NONE";
 })(priority || (priority = {}));
 /**
- * This is a breif class to handle requests.
+ * The Request class defines what a request looks like when it's sent from
+ * somewhere other than main.ts. With the exception of main.ts every added to
+ * the queue will be a version of the Request class at some point.
  */
 class Request {
-    //Constructor
-    constructor(t, p) {
-        this.task = t;
-        this.prio = p;
-    }
-    //Accessors
-    getTask() { return this.task; }
-    getPrio() { return this.prio; }
+    /**
+     * This describes the basic construction of a priority. Similar to the Request
+     * class its fairly basic and just requires the setting of local counterparts.
+     * Runtime: O(2)
+     * @param t The described in the request
+     * @param p The prioirty the task should be run at
+     */
+    constructor(t, p) { this.task = t; this.prio = p; } //O(2)
+    /**
+     * getTask() returns the task in the Request object.
+     * Runtime: O(1)
+     */
+    getTask() { return this.task; } //O(1)
+    /**
+     * The getPrio method returns the priority of the Request object.
+     * Runtime: O(1)
+     */
+    getPrio() { return this.prio; } //O(1)
 }
-//The queue class which prioritizes tasks and runs them relative to their cost.
-//BE CAREFUL: Queue resolves in reverse order.
+/**
+ * This class, Queue implements a queue object which contains a list of tasks
+ * to be run in reverse order on the priority level. For example if you add a, b
+ * and c at priority HIGH once the queue starts the HIGH prioity it will resolve
+ * in, c -> b -> a, assuming there's sufficent cpu remaining.
+ */
 class Queue {
-    //Constructor
     constructor() {
-        //Initalize variables
+        /**
+         * highTasks contains an array of tasks objects which are assumed to have a
+         * priority of HIGH. Tasks with a HIGH priority are run without consideration
+         * for cpu usage.
+         */
         this.highTasks = [];
+        /**
+         * The mediumTasks array contains an array of tasks objects which are assumed
+         * to have a priority of MEDIUM. Tasks are often run quickly with some
+         * consideration for CPU usage.
+         */
         this.mediumTasks = [];
+        /**
+         * This variable, lowTasks contains an array of task objects which are assumed
+         * to have a priority of LOW. These tasks are run when they do not pose much
+         * risk to going over on CPU.
+         */
         this.lowTasks = [];
+        /**
+         * tasks contains an array of tasks objects which are assumed to have no
+         * priority. A few examples of tasks which may end up here include various
+         * screen drawing functions and console logging. Tasks at this level do not
+         * run if they have the potential to go over on CPU.
+         */
         this.tasks = [];
     }
-    //Accessor methods
     /**
-     * Prints the queue at the current priority level.
-     * Runtime: O(c) ---> Runs in constant time.
-     * @param p the priority cut off for tasks to be printed to the console.
+     * The printQueue method prints all the items in the queue to the console in a
+     * hopefully human readable format.
+     * Runtime: O(9 + 5h + 5m + 5l + 5t) or O(9 + 5n) where n is the number of
+     * tasks in all arrays
      */
-    printQueue(p = priority.NONE) {
-        //Counter for the number of tasks.
-        var i = 1;
+    printQueue() {
         //Nice header
-        console.log("---- Queue: ----");
-        //Print the high prioity section
-        if (p <= priority.HIGH) {
-            //Print a sub header
-            console.log(priority.HIGH + ": ");
-            //Iterate through the list
-            for (var j = 0; j < this.highTasks.length; j++) {
-                //Print the line
-                console.log("    " + i + ". " + this.highTasks[j].getName());
-                //Increment i
-                i++;
-            }
-        }
-        //Print the medium prioity section
-        if (p <= priority.MEDIUM) {
-            //Print a sub header
-            console.log(priority.MEDIUM + ": ");
-            //Iterate through the list
-            for (var j = 0; j < this.mediumTasks.length; j++) {
-                //Print the line
-                console.log("    " + i + ". " + this.mediumTasks[j].getName());
-                //Increment i
-                i++;
-            }
-        }
-        //Print the low prioity section
-        if (p <= priority.LOW) {
-            //Print a sub header
-            console.log(priority.LOW + ": ");
-            //Iterate through the list
-            for (var j = 0; j < this.lowTasks.length; j++) {
-                //Print the line
-                console.log("    " + i + ". " + this.lowTasks[j].getName());
-                //Increment i
-                i++;
-            }
-        }
-        //Print the no prioity section
-        if (p <= priority.NONE) {
-            //Print a sub header
-            console.log(priority.NONE + ": ");
-            //Iterate through the list
-            for (var j = 0; j < this.tasks.length; j++) {
-                //Print the line
-                console.log("    " + i + ". " + this.tasks[j].getName());
-                //Increment i
-                i++;
-            }
-        }
+        console.log("---- Queue: ----"); //O(1)
+        //Print a sub header
+        console.log(priority.HIGH + ": "); //O(2)
+        //Iterate through the list and print
+        for (var j = 0; j < this.highTasks.length; j++)
+            console.log("    " + this.highTasks[j].getName()); //O(3 + 5h)
+        //Print a sub header
+        console.log(priority.MEDIUM + ": "); //O(4 + 5h)
+        //Iterate through the list and print
+        for (var j = 0; j < this.mediumTasks.length; j++)
+            console.log("    " + this.mediumTasks[j].getName()); //O(5 + 5h + 5m)
+        //Print a sub header
+        console.log(priority.LOW + ": "); //O(6 + 5h + 5m)
+        //Iterate through the list and print
+        for (var j = 0; j < this.lowTasks.length; j++)
+            console.log("    " + this.lowTasks[j].getName()); //O(7 + 5h + 5m + 5l)
+        //Print a sub header
+        console.log(priority.NONE + ": "); //O(8 + 5h + 5m + 5l)
+        //Iterate through the list and print
+        for (var j = 0; j < this.tasks.length; j++)
+            console.log("    " + this.tasks[j].getName()); //O(9 + 5h + 5m + 5l + 5t)
     }
-    //Methods
+    // TODO: Runtime analysis
     /**
      * Run the queue and any tasks with a relative cost priority less than what is
      * by default all tasks are run.
@@ -2439,24 +2440,22 @@ class Queue {
      * priority run will reduce the runtime though.
      * @param prio The priority level of tasks that should be run.
      */
-    runQueue(prio = priority.NONE) {
+    runQueue() {
         var _a, _b, _c, _d;
-        //Run the tasks in the high priority, if priority is sufficently low
-        if (prio <= priority.HIGH)
-            while (this.highTasks.length > 0)
-                (_a = this.highTasks.pop()) === null || _a === void 0 ? void 0 : _a.run();
-        //Run the tasks in the medium priority, if priority is sufficently low
-        if (prio <= priority.MEDIUM)
-            while (this.mediumTasks.length > 0)
-                (_b = this.mediumTasks.pop()) === null || _b === void 0 ? void 0 : _b.run();
-        //Run the tasks in the low priority, if priority is sufficently low
-        if (prio <= priority.LOW)
-            while (this.lowTasks.length > 0)
-                (_c = this.lowTasks.pop()) === null || _c === void 0 ? void 0 : _c.run();
-        //Run the tasks at the minimum priority, if the priority is sufficently low
-        if (prio <= priority.NONE)
-            while (this.tasks.length > 0)
-                (_d = this.tasks.pop()) === null || _d === void 0 ? void 0 : _d.run();
+        //NOTE: Might be better to check for each section instead of each task. Maybe
+        // implement a check for each group until within 10% then check per task.
+        //Run everything in the HIGH queue... no consideration for cpu
+        while (this.highTasks.length > 0)
+            (_a = this.highTasks.pop()) === null || _a === void 0 ? void 0 : _a.run();
+        //Run medium tasks until we're within 2% of the cap
+        while (this.mediumTasks.length > 0 && Game.cpu.getUsed() < Game.cpu.limit * 0.98)
+            (_b = this.mediumTasks.pop()) === null || _b === void 0 ? void 0 : _b.run();
+        //Run low tasks until we're within 5% of the cap
+        while (this.lowTasks.length > 0 && Game.cpu.getUsed() < Game.cpu.limit * 0.95)
+            (_c = this.lowTasks.pop()) === null || _c === void 0 ? void 0 : _c.run();
+        //Run no priority tasks until we're within 10% of the cap
+        while (this.tasks.length > 0 && Game.cpu.getUsed() < Game.cpu.limit * 0.90)
+            (_d = this.tasks.pop()) === null || _d === void 0 ? void 0 : _d.run();
     }
     /**
      * Adds an item to the queue at the prioirty given.
@@ -2510,7 +2509,33 @@ class Queue {
         Queue.requests = [];
     }
 }
-Queue.requests = []; //Tasks to be added to a specfic queue.
+/**
+ * By default requests are empty but requests can be added by other tasks and
+ * classes which need something to be done. requests are static and not bound
+ * to any particular Queue object but are removed once they've entered a
+ * specific queue.
+ */
+Queue.requests = [];
+
+/**
+ * A simple class which implements getName() so I don't have to a hundred times
+ * over lol xD
+ */
+class template {
+    //Constructor
+    constructor() {
+        //Variables
+        /**
+         * A string varaible which stores the shorthand name for the task.
+         */
+        this.name = "Undefined";
+    }
+    //Accessor methods
+    /**
+     * Returns the name of the task
+     */
+    getName() { return this.name; }
+}
 
 /**
  * This file handles the definitions for the statsmamanger class. The stats class
@@ -2606,25 +2631,42 @@ class StatsManager {
         Memory.dataCollected++;
     }
 }
-
 /**
- * A simple class which implements getName() so I don't have to a hundred times
- * over lol xD
+ * The collect_Stats task collects all the stats for the given tick.
+ * Runtime: O(c) ---> Runs in constant time
  */
-class template {
-    //Constructor
+class collect_Stats extends template {
+    //Constructors
     constructor() {
+        super();
         //Variables
-        /**
-         * A string varaible which stores the shorthand name for the task.
-         */
-        this.name = "Undefined";
+        //The name of the task
+        this.name = "Collect Stats";
     }
-    //Accessor methods
-    /**
-     * Returns the name of the task
-     */
-    getName() { return this.name; }
+    //Real methods
+    run() {
+        //Collect the stats... its really just that easy.
+        StatsManager.collectStats();
+    }
+}
+/**
+ * The print_Stats task prints all the stats collected so far from the stats
+ * managers and prints it into the console.
+ * Runtime O(c) ---> Runs in constant time
+ */
+class print_Stats extends template {
+    //Constructors
+    constructor() {
+        super();
+        //Variables
+        //The name of the task
+        this.name = "Print Stats";
+    }
+    //Real methods
+    run() {
+        //Print the stats... also really just that easy.
+        StatsManager.print();
+    }
 }
 
 /**
@@ -2772,11 +2814,6 @@ class struc_Room {
         }
     }
 }
-
-/**
- * This file contains declartions of tasks that are related to the Room class.
- * @Author Sugaku, math0898
- */
 /**
  * The init_Rooms task which initializes all the rooms current visible in
  * Game.rooms. It is a fairly costly task and so shouldn't be run much.
@@ -2885,48 +2922,6 @@ class print_Rooms extends template {
 }
 
 /**
- * This file contains the implementation of tasks relating to the statsManager.
- * @Author Sugaku, math0898
- */
-/**
- * The collect_Stats task collects all the stats for the given tick.
- * Runtime: O(c) ---> Runs in constant time
- */
-class collect_Stats extends template {
-    //Constructors
-    constructor() {
-        super();
-        //Variables
-        //The name of the task
-        this.name = "Collect Stats";
-    }
-    //Real methods
-    run() {
-        //Collect the stats... its really just that easy.
-        StatsManager.collectStats();
-    }
-}
-/**
- * The print_Stats task prints all the stats collected so far from the stats
- * managers and prints it into the console.
- * Runtime O(c) ---> Runs in constant time
- */
-class print_Stats extends template {
-    //Constructors
-    constructor() {
-        super();
-        //Variables
-        //The name of the task
-        this.name = "Print Stats";
-    }
-    //Real methods
-    run() {
-        //Print the stats... also really just that easy.
-        StatsManager.print();
-    }
-}
-
-/**
  * This boolean tells whether creeps should report what they are doing or not.
  */
 /**
@@ -2988,14 +2983,14 @@ class Creep_Prototype {
      * This is a small utility function which when called on a creep checks how
      * much longer they have to life. If it is equal to some threashold then the
      * count in the room memory for that creep is reduced.
-     * Runtime: O(1) -> O(5)
+     * Runtime: O(2) -> O(6)
      * @param creep - The creep's life to check
      */
     static checkLife(creep) {
         //Check how long the creep has to live
-        if (creep.body.length * 3 == creep.ticksToLive) { //O(1)
+        if (creep.body.length * 3 == creep.ticksToLive) { //O(2)
             //Decrease if it's one
-            Game.rooms[creep.memory.room].memory.counts[creep.memory.role]--; //O(5)
+            Game.rooms[creep.memory.room].memory.counts[creep.memory.role]--; //O(6)
         }
     }
     /**
@@ -3071,7 +3066,7 @@ class Creep_Prototype {
                 creep.memory.emptyStructure = undefined; //O(5) -> O(11 + 3n)
         }
     }
-    //TODO Runtime analysis
+    // TODO: Runtime analysis
     /**
      * Makes the creep look for and pickup nearby resources. Defaults to energy
      * however one can be specified in the function call.
@@ -4165,22 +4160,6 @@ new StatsManager();
 //A colony array holding all of the colonies
 var colonies;
 /**
- * This is a helper method for main to determine when to run each queue level.
- */
-function runQueueHelper() {
-    //We always run the highest priority.
-    queue.runQueue(priority.HIGH);
-    //Check if we're further than 50% from our cap and run medium if we are
-    if (Game.cpu.getUsed() < Game.cpu.limit * 0.50)
-        queue.runQueue(priority.MEDIUM);
-    //Check if we're further than 75% from our cap and run low if we are
-    if (Game.cpu.getUsed() < Game.cpu.limit * 0.25)
-        queue.runQueue(priority.LOW);
-    //Check if we're further than 90% from our cap and run no priority
-    if (Game.cpu.getUsed() < Game.cpu.limit * 0.10)
-        queue.runQueue(priority.NONE);
-}
-/**
  * This is the main loop for the program. Expect clean concise code, anything
  * else means I should really get to work.
  */
@@ -4212,7 +4191,7 @@ const loop = ErrorMapper.wrapLoop(() => {
     queue.queueAdd(new print_Rooms(rooms));
     queue.queueAdd(new print_Stats());
     queue.printQueue();
-    runQueueHelper();
+    queue.runQueue();
 });
 
 exports.loop = loop;

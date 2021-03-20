@@ -69,7 +69,7 @@ export class CreepManager{
   }
 }
 //Import the tasks interface
-import { task, template } from "tasks/task";
+import { task, template } from "task";
 /**
  * The run CreepManager task runs the logic for the CreepManager which requests
  * other tasks that need to be completed in the future.

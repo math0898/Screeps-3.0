@@ -1,7 +1,5 @@
 //Import the creepRole interface
 import { Creep_Role, Creep_Prototype } from "CreepTypes/CreepRole";
-//Are we debugging?
-const debug:boolean = true;
 /**
  * This is the class for the Worker creep. Workers switch between building and
  * upgrading depending on whether there are construction sites or note.
