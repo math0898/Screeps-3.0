@@ -101,6 +101,28 @@ function spawnHarvester(capacity:number, spawn:StructureSpawn){
   if(spawn.spawnCreep(body, name, {memory: {room: spawn.room.name, role: 'Jumpstart'}}) == OK) spawn.room.memory.counts.Jumpstart++;
 }
 /**
+ * Spawns a harvester creep at the given spawn and at the level given.
+ * O(c) --> runs in constant time
+ * @param capacity The max energy the creep can use
+ * @param spawn The spawn where the creep will be spawned
+ */
+function spawnBigBoiHarvester(capacity:number, spawn:StructureSpawn){
+  //The amount of energy towards our total we've spent
+  var spent = 200; //Starts at 200 since we have 2 move (50) parts and 2 carry (50) parts
+  //The starting body for our worker
+  var body:BodyPartConstant[] = [MOVE,MOVE,CARRY,CARRY];
+  //Add another carry part if we have the space
+  while(spent + 50 < capacity/2) { body.push(CARRY); spent += 50;}
+  //Add another carry part if we have the space
+  while(spent + 50 < capacity*3/5) { body.push(MOVE); spent += 50;}
+  //Add work parts until we're out of energy but not to exceed 750 cost
+  while(spent + 100 <= capacity ) { body.push(WORK); spent += 100;}
+  //Temp name storing
+  var name = '[' + spawn.room.name + '] Harvester ' + Game.time;
+  //Spawn the creep, Increment the harvester count in the room if successful
+  if(spawn.spawnCreep(body, name, {memory: {room: spawn.room.name, role: 'Jumpstart'}}) == OK) spawn.room.memory.counts.Jumpstart++;
+}
+/**
  * Spawns a miner creep at the given spawn and at the level given.
  * O(c) --> runs in constant time
  * @param capacity The max energy the creep can use
@@ -204,9 +226,9 @@ export function spawn(currentRoom:Room){
         //Check if a harvester creep needs to be spawned, this includes recovery if all creeps die
         else if(currentRoom.memory.counts.Jumpstart < 1) spawnHarvester(capacity, spawn);
         //Check if a carrier creep needs to be spawned, 2 per miner
-        else if(currentRoom.memory.counts.Carrier < currentRoom.memory.counts.Miner * 2) spawnCarrier(capacity, spawn);
+        // else if(currentRoom.memory.counts.Carrier < currentRoom.memory.counts.Miner * 2) spawnCarrier(capacity, spawn);
         //Check if a miner creep needs to be spawned, 1 per source
-        else if(currentRoom.memory.counts.Miner < currentRoom.find(FIND_SOURCES).length) spawnMiner(capacity, spawn);
+        else if(currentRoom.memory.counts.Jumpstart < 6) spawnBigBoiHarvester(capacity, spawn);
         //Check if workers should be spawned, 4 base, // TODO: check if more can be spawned
         else if(currentRoom.memory.counts.Worker < 4) spawnWorker(capacity, spawn);
         //Check if a repair bot should be spawned

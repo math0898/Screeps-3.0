@@ -2993,7 +2993,7 @@ class Creep_Prototype {
      */
     static checkLife(creep) {
         //Check how long the creep has to live
-        if (1 == creep.ticksToLive) { //O(1)
+        if (creep.body.length * 3 == creep.ticksToLive) { //O(1)
             //Decrease if it's one
             Game.rooms[creep.memory.room].memory.counts[creep.memory.role]--; //O(5)
         }
@@ -3869,27 +3869,6 @@ class SpawnWorker extends AbstractSpawnCreep {
  * @param capacity The max energy the creep can use
  * @param spawn The spawn where the creep will be spawned
  */
-function spawnCarrier(capacity, spawn) {
-    //Temporaily stores how much energy we've spent on our creep
-    var spent = 100; //Starts at 100 since everything has 2 move (50) parts
-    //No matter how much energy we have the carrier starts with 2 move components
-    var body = [MOVE, MOVE];
-    //Add move parts so as not to exceed 4 parts or 1/3 our energy budget
-    while (spent + 50 <= (capacity / 3)) {
-        body.push(MOVE);
-        spent += 50;
-    }
-    //Fill the remaining space with carry (50) parts as not to exceed 600 total cost
-    while (spent + 50 <= capacity) {
-        body.push(CARRY);
-        spent += 50;
-    }
-    //Temp name storing
-    var name = '[' + spawn.room.name + '] Carrier ' + Game.time;
-    //Spawn the creep, Increment the carrier count in the room if successful
-    if (spawn.spawnCreep(body, name, { memory: { room: spawn.room.name, role: 'Carrier' } }) == OK)
-        spawn.room.memory.counts.Carrier++;
-}
 /**
  * Spawns a defender creep at the given spawn and at the level given.
  * O(c) --> Runs in constant time.
@@ -3984,30 +3963,36 @@ function spawnHarvester(capacity, spawn) {
         spawn.room.memory.counts.Jumpstart++;
 }
 /**
- * Spawns a miner creep at the given spawn and at the level given.
+ * Spawns a harvester creep at the given spawn and at the level given.
  * O(c) --> runs in constant time
  * @param capacity The max energy the creep can use
  * @param spawn The spawn where the creep will be spawned
  */
-function spawnMiner(capacity, spawn) {
+function spawnBigBoiHarvester(capacity, spawn) {
     //The amount of energy towards our total we've spent
-    var spent = 250; //Starts at 200 since we have 1 move (50) parts and 2 work (100) parts
-    //The starting body for our miner
-    var body = [MOVE, WORK, WORK];
-    //Append work body parts until out of energy, not to exceed 5 total
-    while (spent + 100 <= capacity && body.length < 8) {
-        body.push(WORK);
-        spent += 100;
+    var spent = 200; //Starts at 200 since we have 2 move (50) parts and 2 carry (50) parts
+    //The starting body for our worker
+    var body = [MOVE, MOVE, CARRY, CARRY];
+    //Add another carry part if we have the space
+    while (spent + 50 < capacity / 2) {
+        body.push(CARRY);
+        spent += 50;
     }
-    while (spent + 50 <= capacity && body.length < 17) {
+    //Add another carry part if we have the space
+    while (spent + 50 < capacity * 3 / 5) {
         body.push(MOVE);
         spent += 50;
     }
+    //Add work parts until we're out of energy but not to exceed 750 cost
+    while (spent + 100 <= capacity) {
+        body.push(WORK);
+        spent += 100;
+    }
     //Temp name storing
-    var name = '[' + spawn.room.name + '] Miner ' + Game.time;
-    //Spawn the creep, Increment the miner count in the room if successful
-    if (spawn.spawnCreep(body, name, { memory: { room: spawn.room.name, role: 'Miner' } }) == OK)
-        spawn.room.memory.counts.Miner++;
+    var name = '[' + spawn.room.name + '] Harvester ' + Game.time;
+    //Spawn the creep, Increment the harvester count in the room if successful
+    if (spawn.spawnCreep(body, name, { memory: { room: spawn.room.name, role: 'Jumpstart' } }) == OK)
+        spawn.room.memory.counts.Jumpstart++;
 }
 /**
  * Spawns a scout creep at the given spawn and at the level given.
@@ -4090,11 +4075,10 @@ function spawn(currentRoom) {
             else if (currentRoom.memory.counts.Jumpstart < 1)
                 spawnHarvester(capacity, spawn);
             //Check if a carrier creep needs to be spawned, 2 per miner
-            else if (currentRoom.memory.counts.Carrier < currentRoom.memory.counts.Miner * 2)
-                spawnCarrier(capacity, spawn);
+            // else if(currentRoom.memory.counts.Carrier < currentRoom.memory.counts.Miner * 2) spawnCarrier(capacity, spawn);
             //Check if a miner creep needs to be spawned, 1 per source
-            else if (currentRoom.memory.counts.Miner < currentRoom.find(FIND_SOURCES).length)
-                spawnMiner(capacity, spawn);
+            else if (currentRoom.memory.counts.Jumpstart < 6)
+                spawnBigBoiHarvester(capacity, spawn);
             //Check if workers should be spawned, 4 base, // TODO: check if more can be spawned
             else if (currentRoom.memory.counts.Worker < 4)
                 spawnWorker(capacity, spawn);
@@ -4214,8 +4198,7 @@ const loop = ErrorMapper.wrapLoop(() => {
     //Proccess the requests from the last tick
     queue.proccessRequests();
     //Generate a pixel if we can.
-    if (Game.cpu.bucket == 10000)
-        Game.cpu.generatePixel(); //Game.cpu.generatePixel(); is not a command in private servers, uncomment when pushing to public
+    // if(Game.cpu.bucket == 10000) Game.cpu.generatePixel(); //Game.cpu.generatePixel(); is not a command in private servers, uncomment when pushing to public
     //Things that should always be ran
     queue.queueAdd(new creepAI_CreepManager(), priority.HIGH);
     //Add items that should always be run... but only if they can be

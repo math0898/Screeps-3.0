@@ -55,14 +55,14 @@ export abstract class Creep_Prototype {
    * This is a small utility function which when called on a creep checks how
    * much longer they have to life. If it is equal to some threashold then the
    * count in the room memory for that creep is reduced.
-   * Runtime: O(1) -> O(5)
+   * Runtime: O(2) -> O(6)
    * @param creep - The creep's life to check
    */
    static checkLife(creep:Creep) {
      //Check how long the creep has to live
-     if(1 == creep.ticksToLive) { //O(1)
+     if(creep.body.length * 3 == creep.ticksToLive) { //O(2)
        //Decrease if it's one
-       Game.rooms[creep.memory.room].memory.counts[creep.memory.role]--; //O(5)
+       Game.rooms[creep.memory.room].memory.counts[creep.memory.role]--; //O(6)
      }
    }
   /**
