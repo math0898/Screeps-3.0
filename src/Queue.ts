@@ -107,67 +107,75 @@ export class Queue{
     //Iterate through the list and print
     for(var j = 0; j < this.tasks.length; j++) console.log("    "+ this.tasks[j].getName()); //O(9 + 5h + 5m + 5l + 5t)
   }
-
-  // TODO: Runtime analysis
   /**
-   * Run the queue and any tasks with a relative cost priority less than what is
-   * by default all tasks are run.
-   * Runtime is dependent on items in the queue and can vary. Using a higher
-   * priority run will reduce the runtime though.
-   * @param prio The priority level of tasks that should be run.
+   * This method runQueue runs the queue object with all of the given tasks. It
+   * checks cpu before every task is run if it has reached a total cpu usage of
+   * 50% before then but skips the check if bellow. Without considering that the
+   * runtime of this method can vary wildly in runtime depending on the tasks
+   * that are in the queue. As such I have opted not to give this method a
+   * formal runtime analysis and most optimizations should be done in the tasks
+   * themselves or in the free reign threashold which is currently 50%.
    */
   runQueue(){
-    //NOTE: Might be better to check for each section instead of each task. Maybe
-    // implement a check for each group until within 10% then check per task.
-    //Run everything in the HIGH queue... no consideration for cpu
+    //Run all of the high tasks regardless of cpu
     while (this.highTasks.length > 0) this.highTasks.pop()?.run();
-    //Run medium tasks until we're within 2% of the cap
-    while (this.mediumTasks.length > 0 && Game.cpu.getUsed() < Game.cpu.limit * 0.98) this.mediumTasks.pop()?.run();
-    //Run low tasks until we're within 5% of the cap
-    while (this.lowTasks.length > 0 && Game.cpu.getUsed() < Game.cpu.limit * 0.95) this.lowTasks.pop()?.run();
-    //Run no priority tasks until we're within 10% of the cap
-    while (this.tasks.length > 0 && Game.cpu.getUsed() < Game.cpu.limit * 0.90) this.tasks.pop()?.run();
+    //Run all of the medium tasks if we're bellow 50% usage
+    if(Game.cpu.getUsed() < Game.cpu.limit * 0.5) while (this.mediumTasks.length > 0) this.mediumTasks.pop()?.run();
+    //Run medium tasks until within 98% if we're above 50% usage
+    else while (this.mediumTasks.length > 0 && Game.cpu.getUsed() < Game.cpu.limit * 0.98) this.mediumTasks.pop()?.run();
+    //Run all of the low tasks if we're bellow 50% usage
+    if(Game.cpu.getUsed() < Game.cpu.limit * 0.5) while (this.lowTasks.length > 0) this.lowTasks.pop()?.run();
+    //Run low tasks until within 95% if we're above 50% usage
+    else while (this.lowTasks.length > 0 && Game.cpu.getUsed() < Game.cpu.limit * 0.95) this.lowTasks.pop()?.run();
+    //Run all no prioirty tasks if we're bellow 50% usage
+    if(Game.cpu.getUsed() < Game.cpu.limit * 0.5) while (this.tasks.length > 0) this.tasks.pop()?.run();
+    //Run no priority tasks until we're within 10% of cap
+    else while (this.tasks.length > 0 && Game.cpu.getUsed() < Game.cpu.limit * 0.90) this.tasks.pop()?.run();
   }
- /**
-  * Adds an item to the queue at the prioirty given.
-  * Runtime: O(c) ---> Runs in constant time.
-  * @param t the task to be added.
-  * @param p the priority to add the task at. Defaults to no priority
-  */
+  /**
+   * queueAdd adds an item to the queue immediatly, defaulting to a priority of
+   * zero, unless one is provided.
+   * Runtime: O(3)
+   * @param t The task to be added to the queue
+   * @param p the priority for the item to be added, defaults to no priority
+   */
   queueAdd(t: task, p: priority = priority.NONE){
     //Check the priority this should be added at
-    switch(p){
+    switch(p){ //O(1)
       //We're adding the item to the highTasks
-      case priority.HIGH: this.highTasks.push(t); break;
+      case priority.HIGH: this.highTasks.push(t); break; //O(3)
       //We're adding the item to the mediumTasks
-      case priority.MEDIUM: this.mediumTasks.push(t); break;
+      case priority.MEDIUM: this.mediumTasks.push(t); break; //O(3)
       //We're adding the item to the lowTasks
-      case priority.LOW: this.lowTasks.push(t); break;
+      case priority.LOW: this.lowTasks.push(t); break; //O(3)
       //We're adding the item to the tasks
-      case priority.NONE: this.tasks.push(t); break;
+      case priority.NONE: this.tasks.push(t); break; //O(3)
     }
   }
   /**
-   * Enters a request for a task to be completed. Must use proccessRequests()
-   * before they can be run from a Queue object.
-   * Runtime: O(c) ---> Runs in constant time.
-   * @param t the task to be added.
-   * @param p the priority to add the task at. Defaults to no priority
+   * The request method works as a way for tasks to request other tasks to be
+   * completed. Requests must be proccessed to a Queue object before they can
+   * run.
+   * Runtime: O(4)
+   * @param t The task to be added to the requests array
+   * @param p The priority for the request to be added, defaults to no priority
    */
-   static request(t: task, p: priority = priority.NONE){
-     //Make a quick request then push it to the array
-     var request = new Request(t,p);
-     //Add it to the array to be proccessed later
-     Queue.requests.push(request);
-   }
+  static request(t: task, p: priority = priority.NONE){
+    //Make a quick request then push it to the array
+    var request = new Request(t,p); //O(3)
+    //Add it to the array to be proccessed later
+    Queue.requests.push(request); //O(4)
+  }
   /**
-   * This takes the requests in the static member requets[] and adds them to the
-   * queue object this was called on.
+   * Proccesses all the requests that are in the requests array held on the
+   * Queue static item. The object proccessRequests is called on will hold the
+   * requests in its Queue.
+   * Runtime: O(2 + 6n) where n is the length of the requests array
    */
-   proccessRequests(){
-     //Iterate through the requests and add them to the queue
-     for(var i = 0; i < Queue.requests.length; i++) this.queueAdd(Queue.requests[i].getTask(),Queue.requests[i].getPrio());
-     //Clear the requests array
-     Queue.requests = [];
-   }
+  proccessRequests(){
+    //Iterate through the requests and add them to the queue
+    for(var i = 0; i < Queue.requests.length; i++) this.queueAdd(Queue.requests[i].getTask(),Queue.requests[i].getPrio()); //O(1 + 6n)
+    //Clear the requests array
+    Queue.requests = []; //O(2 + 6n)
+  }
 }

@@ -55,14 +55,14 @@ export abstract class Creep_Prototype {
    * This is a small utility function which when called on a creep checks how
    * much longer they have to life. If it is equal to some threashold then the
    * count in the room memory for that creep is reduced.
-   * Runtime: O(2) -> O(6)
+   * Runtime: O(2) -> O(7)
    * @param creep - The creep's life to check
    */
    static checkLife(creep:Creep) {
      //Check how long the creep has to live
      if(creep.body.length * 3 == creep.ticksToLive) { //O(2)
        //Decrease if it's one
-       Game.rooms[creep.memory.room].memory.counts[creep.memory.role]--; //O(6)
+       Game.rooms[creep.memory.room].memory.counts["Worker"]--; //O(7)
      }
    }
   /**
@@ -272,7 +272,7 @@ export abstract class Creep_Prototype {
       //Read memory
       var b:Structure | null = Game.getObjectById(creep.memory.repair);
       //Check if there exists a building
-      if(b != null) {
+      if(b != null && b.hits < b.hitsMax) {
         //Check if we're near the source and move to it if we aren't
         if (!(creep.pos.inRangeTo(b, 3))) this.creepOptimizedMove(creep, b.pos);
         //Harvest the source
@@ -281,6 +281,30 @@ export abstract class Creep_Prototype {
         //We need to find a new construction site
         creep.memory.repair = undefined;
       }
+    }
+  }
+  static run(creep:Creep, goal?:string){
+    //Check if we're full on energy
+    if (creep.carry.energy == creep.carryCapacity) creep.memory.working = true;
+    //If we're out of energy obtain more
+    else if (creep.carry.energy == 0 || creep.memory.working == undefined) creep.memory.working = false;
+    //Lets Spend some energy
+    if(creep.memory.working) {
+      //We should otherwise fill up buildings
+      switch(goal) {
+        case undefined: creep.say("ADKNFQERI"); return;
+        case "Fill": Creep_Prototype.creepFill(creep); break;
+        case "Fix": Creep_Prototype.creepRepair(creep); break;
+        case "Build": Creep_Prototype.creepBuild(creep); break;
+        case "Upgrade": Creep_Prototype.creepUpgrade(creep); break;
+      }
+    }
+    //Lets get some energy
+    else {
+      //We're mining
+      if(debug) creep.say('⛏', true);
+      //Got harvest
+      Creep_Prototype.creepHarvest(creep); //O(n)
     }
   }
 }

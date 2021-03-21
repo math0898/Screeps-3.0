@@ -2432,81 +2432,99 @@ class Queue {
         for (var j = 0; j < this.tasks.length; j++)
             console.log("    " + this.tasks[j].getName()); //O(9 + 5h + 5m + 5l + 5t)
     }
-    // TODO: Runtime analysis
     /**
-     * Run the queue and any tasks with a relative cost priority less than what is
-     * by default all tasks are run.
-     * Runtime is dependent on items in the queue and can vary. Using a higher
-     * priority run will reduce the runtime though.
-     * @param prio The priority level of tasks that should be run.
+     * This method runQueue runs the queue object with all of the given tasks. It
+     * checks cpu before every task is run if it has reached a total cpu usage of
+     * 50% before then but skips the check if bellow. Without considering that the
+     * runtime of this method can vary wildly in runtime depending on the tasks
+     * that are in the queue. As such I have opted not to give this method a
+     * formal runtime analysis and most optimizations should be done in the tasks
+     * themselves or in the free reign threashold which is currently 50%.
      */
     runQueue() {
-        var _a, _b, _c, _d;
-        //NOTE: Might be better to check for each section instead of each task. Maybe
-        // implement a check for each group until within 10% then check per task.
-        //Run everything in the HIGH queue... no consideration for cpu
+        var _a, _b, _c, _d, _e, _f, _g;
+        //Run all of the high tasks regardless of cpu
         while (this.highTasks.length > 0)
             (_a = this.highTasks.pop()) === null || _a === void 0 ? void 0 : _a.run();
-        //Run medium tasks until we're within 2% of the cap
-        while (this.mediumTasks.length > 0 && Game.cpu.getUsed() < Game.cpu.limit * 0.98)
-            (_b = this.mediumTasks.pop()) === null || _b === void 0 ? void 0 : _b.run();
-        //Run low tasks until we're within 5% of the cap
-        while (this.lowTasks.length > 0 && Game.cpu.getUsed() < Game.cpu.limit * 0.95)
-            (_c = this.lowTasks.pop()) === null || _c === void 0 ? void 0 : _c.run();
-        //Run no priority tasks until we're within 10% of the cap
-        while (this.tasks.length > 0 && Game.cpu.getUsed() < Game.cpu.limit * 0.90)
-            (_d = this.tasks.pop()) === null || _d === void 0 ? void 0 : _d.run();
+        //Run all of the medium tasks if we're bellow 50% usage
+        if (Game.cpu.getUsed() < Game.cpu.limit * 0.5)
+            while (this.mediumTasks.length > 0)
+                (_b = this.mediumTasks.pop()) === null || _b === void 0 ? void 0 : _b.run();
+        //Run medium tasks until within 98% if we're above 50% usage
+        else
+            while (this.mediumTasks.length > 0 && Game.cpu.getUsed() < Game.cpu.limit * 0.98)
+                (_c = this.mediumTasks.pop()) === null || _c === void 0 ? void 0 : _c.run();
+        //Run all of the low tasks if we're bellow 50% usage
+        if (Game.cpu.getUsed() < Game.cpu.limit * 0.5)
+            while (this.lowTasks.length > 0)
+                (_d = this.lowTasks.pop()) === null || _d === void 0 ? void 0 : _d.run();
+        //Run low tasks until within 95% if we're above 50% usage
+        else
+            while (this.lowTasks.length > 0 && Game.cpu.getUsed() < Game.cpu.limit * 0.95)
+                (_e = this.lowTasks.pop()) === null || _e === void 0 ? void 0 : _e.run();
+        //Run all no prioirty tasks if we're bellow 50% usage
+        if (Game.cpu.getUsed() < Game.cpu.limit * 0.5)
+            while (this.tasks.length > 0)
+                (_f = this.tasks.pop()) === null || _f === void 0 ? void 0 : _f.run();
+        //Run no priority tasks until we're within 10% of cap
+        else
+            while (this.tasks.length > 0 && Game.cpu.getUsed() < Game.cpu.limit * 0.90)
+                (_g = this.tasks.pop()) === null || _g === void 0 ? void 0 : _g.run();
     }
     /**
-     * Adds an item to the queue at the prioirty given.
-     * Runtime: O(c) ---> Runs in constant time.
-     * @param t the task to be added.
-     * @param p the priority to add the task at. Defaults to no priority
+     * queueAdd adds an item to the queue immediatly, defaulting to a priority of
+     * zero, unless one is provided.
+     * Runtime: O(3)
+     * @param t The task to be added to the queue
+     * @param p the priority for the item to be added, defaults to no priority
      */
     queueAdd(t, p = priority.NONE) {
         //Check the priority this should be added at
-        switch (p) {
+        switch (p) { //O(1)
             //We're adding the item to the highTasks
             case priority.HIGH:
                 this.highTasks.push(t);
-                break;
+                break; //O(3)
             //We're adding the item to the mediumTasks
             case priority.MEDIUM:
                 this.mediumTasks.push(t);
-                break;
+                break; //O(3)
             //We're adding the item to the lowTasks
             case priority.LOW:
                 this.lowTasks.push(t);
-                break;
+                break; //O(3)
             //We're adding the item to the tasks
             case priority.NONE:
                 this.tasks.push(t);
-                break;
+                break; //O(3)
         }
     }
     /**
-     * Enters a request for a task to be completed. Must use proccessRequests()
-     * before they can be run from a Queue object.
-     * Runtime: O(c) ---> Runs in constant time.
-     * @param t the task to be added.
-     * @param p the priority to add the task at. Defaults to no priority
+     * The request method works as a way for tasks to request other tasks to be
+     * completed. Requests must be proccessed to a Queue object before they can
+     * run.
+     * Runtime: O(4)
+     * @param t The task to be added to the requests array
+     * @param p The priority for the request to be added, defaults to no priority
      */
     static request(t, p = priority.NONE) {
         //Make a quick request then push it to the array
-        var request = new Request(t, p);
+        var request = new Request(t, p); //O(3)
         //Add it to the array to be proccessed later
-        Queue.requests.push(request);
+        Queue.requests.push(request); //O(4)
     }
     /**
-     * This takes the requests in the static member requets[] and adds them to the
-     * queue object this was called on.
+     * Proccesses all the requests that are in the requests array held on the
+     * Queue static item. The object proccessRequests is called on will hold the
+     * requests in its Queue.
+     * Runtime: O(2 + 6n) where n is the length of the requests array
      */
     proccessRequests() {
         //Iterate through the requests and add them to the queue
         for (var i = 0; i < Queue.requests.length; i++)
-            this.queueAdd(Queue.requests[i].getTask(), Queue.requests[i].getPrio());
+            this.queueAdd(Queue.requests[i].getTask(), Queue.requests[i].getPrio()); //O(1 + 6n)
         //Clear the requests array
-        Queue.requests = [];
+        Queue.requests = []; //O(2 + 6n)
     }
 }
 /**
@@ -2983,14 +3001,14 @@ class Creep_Prototype {
      * This is a small utility function which when called on a creep checks how
      * much longer they have to life. If it is equal to some threashold then the
      * count in the room memory for that creep is reduced.
-     * Runtime: O(2) -> O(6)
+     * Runtime: O(2) -> O(7)
      * @param creep - The creep's life to check
      */
     static checkLife(creep) {
         //Check how long the creep has to live
         if (creep.body.length * 3 == creep.ticksToLive) { //O(2)
             //Decrease if it's one
-            Game.rooms[creep.memory.room].memory.counts[creep.memory.role]--; //O(6)
+            Game.rooms[creep.memory.room].memory.counts["Worker"]--; //O(7)
         }
     }
     /**
@@ -3224,7 +3242,7 @@ class Creep_Prototype {
             //Read memory
             var b = Game.getObjectById(creep.memory.repair);
             //Check if there exists a building
-            if (b != null) {
+            if (b != null && b.hits < b.hitsMax) {
                 //Check if we're near the source and move to it if we aren't
                 if (!(creep.pos.inRangeTo(b, 3)))
                     this.creepOptimizedMove(creep, b.pos);
@@ -3238,27 +3256,7 @@ class Creep_Prototype {
             }
         }
     }
-}
-
-//Import the creepRole interface
-/**
- * This is the class for the JumpStart creep. The primary job of the JumpStart
- * creep is to push the RCL from 1 to 2 or to fill extensions in case the colony
- * dies It is mostly static as it simply needs to act on harvester creeps
- *instead of storing them in cache as an object.
- */
-class JumpStart extends Creep_Prototype {
-    //Constructor
-    constructor() {
-        super();
-        //Variables
-        this.name = "Jumpstart";
-    }
-    //Real Methods
-    run(creep) {
-        JumpStart.run(creep);
-    }
-    static run(creep) {
+    static run(creep, goal) {
         //Check if we're full on energy
         if (creep.carry.energy == creep.carryCapacity)
             creep.memory.working = true;
@@ -3267,21 +3265,31 @@ class JumpStart extends Creep_Prototype {
             creep.memory.working = false;
         //Lets Spend some energy
         if (creep.memory.working) {
-            //We're working
-            creep.say('⚙', true);
-            //If we're level one, upgrade the controller
-            if (creep.room.controller.level == 1)
-                super.creepUpgrade(creep); //O(c)
             //We should otherwise fill up buildings
-            else
-                super.creepFill(creep);
+            switch (goal) {
+                case undefined:
+                    creep.say("ADKNFQERI");
+                    return;
+                case "Fill":
+                    Creep_Prototype.creepFill(creep);
+                    break;
+                case "Fix":
+                    Creep_Prototype.creepRepair(creep);
+                    break;
+                case "Build":
+                    Creep_Prototype.creepBuild(creep);
+                    break;
+                case "Upgrade":
+                    Creep_Prototype.creepUpgrade(creep);
+                    break;
+            }
         }
         //Lets get some energy
         else {
             //We're mining
             creep.say('⛏', true);
             //Got harvest
-            super.creepHarvest(creep); //O(n)
+            Creep_Prototype.creepHarvest(creep); //O(n)
         }
     }
 }
@@ -3318,120 +3326,6 @@ class Scout extends Creep_Prototype {
 
 //Import the creepRole interface
 /**
- * This is the class for the Miner creep. The primary job of the Miner creep is
- * to mine sources until they are empty. This usually takes 5 work parts,
- * sometimes more depending on how long it takes the miner to move.
- */
-class Miner extends Creep_Prototype {
-    //Constructor
-    constructor() {
-        super();
-        //Variables
-        this.name = "Miner";
-    }
-    //Real Methods
-    run(creep) {
-        Miner.run(creep);
-    }
-    static run(creep) {
-        //Got harvest
-        super.creepHarvest(creep); //O(n)
-    }
-}
-
-//Import the creepRole interface
-/**
- * This is the class for the Carrier creep. The primary role of the carrier
- * creep is to move resources around the base and into storage or other devices
- * that could use them.
- */
-class Carrier extends Creep_Prototype {
-    constructor() {
-        super(...arguments);
-        //Variables
-        this.name = "Carrier";
-    }
-    //Real Methods
-    run(creep) {
-        Carrier.run(creep);
-    }
-    static run(creep) {
-        //Check if we're full on energy
-        if (creep.carry.energy == creep.carryCapacity)
-            creep.memory.working = true;
-        //If we're out of energy obtain more
-        else if (creep.carry.energy == 0 || creep.memory.working == undefined)
-            creep.memory.working = false;
-        //Lets Spend some energy
-        if (creep.memory.working) {
-            //We should fill up buildings
-            super.creepFill(creep);
-        }
-        //Lets get some energy
-        else {
-            //Got harvest
-            super.creepPickup(creep); //O(n)
-        }
-    }
-}
-
-//Import the creepRole interface
-/**
- * This is the class for the Worker creep. Workers switch between building and
- * upgrading depending on whether there are construction sites or note.
- * Generally speaking workers will spend most of their time building.
- */
-class Worker extends Creep_Prototype {
-    //Constructor
-    constructor() {
-        super();
-        //Variables
-        this.name = "Worker";
-    }
-    //Real Methods
-    run(creep) {
-        Worker.run(creep);
-    }
-    static run(creep) {
-        //Check if we're full on energy
-        if (creep.carry.energy == creep.carryCapacity)
-            creep.memory.working = true;
-        //If we're out of energy obtain more
-        else if (creep.carry.energy == 0 || creep.memory.working == undefined)
-            creep.memory.working = false;
-        //Lets Spend some energy
-        if (creep.memory.working) {
-            var t = creep.room.find(FIND_CONSTRUCTION_SITES);
-            //Build
-            if (t != undefined && t.length > 0)
-                creep.memory.build = true;
-            else
-                creep.memory.build = false;
-            //We're building
-            if (creep.memory.build)
-                super.creepBuild(creep);
-            //We're upgrading
-            else
-                super.creepUpgrade(creep);
-        }
-        //Lets get some energy
-        else {
-            //Are there miners?
-            if (creep.room.memory.counts["Miner"] > 0) {
-                //Got harvest
-                super.creepPickup(creep); //O(n)
-                //We're mining ourselves
-            }
-            else {
-                //Got harvest
-                super.creepHarvest(creep); //O(n)
-            }
-        }
-    }
-}
-
-//Import the creepRole interface
-/**
  * This is the class for the Carrier creep. The primary role of the carrier
  * creep is to move resources around the base and into storage or other devices
  * that could use them.
@@ -3462,51 +3356,10 @@ class Defender extends Creep_Prototype {
     }
 }
 
-//Import the creepRole interface
-/**
- * This is the class for the Carrier creep. The primary role of the carrier
- * creep is to move resources around the base and into storage or other devices
- * that could use them.
- */
-class RepairBot extends Creep_Prototype {
-    constructor() {
-        super(...arguments);
-        //Variables
-        this.name = "RepairBot";
-    }
-    //Real Methods
-    run(creep) {
-        RepairBot.run(creep);
-    }
-    static run(creep) {
-        //Check if we're full on energy
-        if (creep.carry.energy == creep.carryCapacity)
-            creep.memory.working = true;
-        //If we're out of energy obtain more
-        else if (creep.carry.energy == 0 || creep.memory.working == undefined)
-            creep.memory.working = false;
-        //Lets Spend some energy
-        if (creep.memory.working) {
-            //We should fill up buildings
-            super.creepRepair(creep);
-        }
-        //Lets get some energy
-        else {
-            //Got harvest
-            super.creepPickup(creep); //O(n)
-        }
-    }
-}
-
 //Import the queue so we can request tasks, priority so we can set priority
 var params = {};
-params["Jumpstart"] = new JumpStart();
 params["Scout"] = new Scout();
-params["Miner"] = new Miner();
-params["Carrier"] = new Carrier();
-params["Worker"] = new Worker();
 params["Defender"] = new Defender();
-params["RepairBot"] = new RepairBot();
 /**
  * This is the creep manager class. It is mostly static and handles the
  * management of creeps including their AI and memory.
@@ -3539,11 +3392,24 @@ class CreepManager {
         for (let c in Game.creeps) {
             //Short hand
             var creep = Game.creeps[c];
+            creep.say("adkfhkadf");
             //Check if the creep is spawning
             if (creep.spawning)
                 break;
-            //Run AI
-            params[creep.memory.role].run(creep);
+            //If the creep has a defined role run that role's AI
+            if (creep.memory.role != undefined)
+                params[creep.memory.role].run(creep);
+            //Otherwise run the general code passing through the colony's goals
+            else {
+                var a = undefined;
+                for (var i = 0; i < exports.colonies.length; i++)
+                    if (exports.colonies[i].home.name == creep.memory.room) {
+                        a = exports.colonies[i];
+                        break;
+                    }
+                if (a != undefined)
+                    Creep_Prototype.run(creep, a.goals.pop());
+            }
             //Check the creep's life
             Creep_Prototype.checkLife(creep);
         }
@@ -3903,7 +3769,7 @@ function spawnDefender(capacity, spawn) {
     //Temp name storing
     var name = '[' + spawn.room.name + '] Defender ' + Game.time;
     //Spawn the defender
-    spawn.spawnCreep(body, name, { memory: { room: spawn.room.name, role: 'Defender' } }) == OK;
+    spawn.spawnCreep(body, name, { memory: { room: spawn.room.name, role: 'Defender' } });
 }
 /**
  * Spawns a claimer creep at the given spawn and at the level given.
@@ -3954,8 +3820,8 @@ function spawnHarvester(capacity, spawn) {
     //Temp name storing
     var name = '[' + spawn.room.name + '] Harvester ' + Game.time;
     //Spawn the creep, Increment the harvester count in the room if successful
-    if (spawn.spawnCreep(body, name, { memory: { room: spawn.room.name, role: 'Jumpstart' } }) == OK)
-        spawn.room.memory.counts.Jumpstart++;
+    if (spawn.spawnCreep(body, name, { memory: { room: spawn.room.name } }) == OK)
+        spawn.room.memory.counts.Worker++;
 }
 /**
  * Spawns a harvester creep at the given spawn and at the level given.
@@ -3986,8 +3852,8 @@ function spawnBigBoiHarvester(capacity, spawn) {
     //Temp name storing
     var name = '[' + spawn.room.name + '] Harvester ' + Game.time;
     //Spawn the creep, Increment the harvester count in the room if successful
-    if (spawn.spawnCreep(body, name, { memory: { room: spawn.room.name, role: 'Jumpstart' } }) == OK)
-        spawn.room.memory.counts.Jumpstart++;
+    if (spawn.spawnCreep(body, name, { memory: { room: spawn.room.name } }) == OK)
+        spawn.room.memory.counts.Worker++;
 }
 /**
  * Spawns a scout creep at the given spawn and at the level given.
@@ -4034,7 +3900,7 @@ function spawnWorker(capacity, spawn) {
     //Temp name storing
     var name = '[' + spawn.room.name + '] Worker ' + Game.time;
     //Spawn the creep, Increment the upgrader count in the room if successful
-    if (spawn.spawnCreep(body, name, { memory: { room: spawn.room.name, role: 'Worker' } }) == OK)
+    if (spawn.spawnCreep(body, name, { memory: { room: spawn.room.name } }) == OK)
         spawn.room.memory.counts.Worker++;
 }
 //Public facing functions
@@ -4067,12 +3933,12 @@ function spawn(currentRoom) {
             if (hostiles)
                 spawnDefender(capacity, spawn);
             //Check if a harvester creep needs to be spawned, this includes recovery if all creeps die
-            else if (currentRoom.memory.counts.Jumpstart < 1)
+            else if (currentRoom.memory.counts.Worker < 1)
                 spawnHarvester(capacity, spawn);
             //Check if a carrier creep needs to be spawned, 2 per miner
             // else if(currentRoom.memory.counts.Carrier < currentRoom.memory.counts.Miner * 2) spawnCarrier(capacity, spawn);
             //Check if a miner creep needs to be spawned, 1 per source
-            else if (currentRoom.memory.counts.Jumpstart < 6)
+            else if (currentRoom.memory.counts.Worker < 10)
                 spawnBigBoiHarvester(capacity, spawn);
             //Check if workers should be spawned, 4 base, // TODO: check if more can be spawned
             else if (currentRoom.memory.counts.Worker < 4)
@@ -4098,6 +3964,7 @@ var p = {};
 class Colony {
     //Constructors
     constructor(r) {
+        this.goals = [];
         this.home = r;
         this.era = -1;
         this.homePrototype = new struc_Room(r.name);
@@ -4109,6 +3976,20 @@ class Colony {
     }
     //Methods
     run() {
+        //Reset the goals
+        this.goals = [];
+        //Search for a set of objects
+        var r = this.home.find(FIND_STRUCTURES, { filter: (c) => c.hits < c.hitsMax && c.structureType != STRUCTURE_WALL });
+        var c = this.home.find(FIND_CONSTRUCTION_SITES);
+        this.home.find(FIND_DROPPED_RESOURCES, { filter: { resourceType: RESOURCE_ENERGY } });
+        var s = this.home.find(FIND_MY_STRUCTURES, { filter: (s) => (s.structureType == STRUCTURE_SPAWN || s.structureType == STRUCTURE_EXTENSION || s.structureType == STRUCTURE_TOWER) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0 }); //O(7 + 3n)
+        this.goals.push("Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade");
+        if (c != null && c.length > 0)
+            this.goals.push("Build", "Build", "Build", "Build");
+        if (r != null && r.length > 0)
+            this.goals.push("Fix", "Fix");
+        if (s != null && s.length > 0)
+            this.goals.push("Fill", "Fill", "Fill", "FILL", "FILL");
         if (Game.time % 100 == 0)
             this.census();
         //Run the spawn manger.
@@ -4128,7 +4009,7 @@ class Colony {
             var creep = Game.creeps[c];
             if (creep.memory.room != this.home.name)
                 continue;
-            this.home.memory.counts[creep.memory.role]++;
+            this.home.memory.counts["Worker"]++;
         }
     }
 }
@@ -4158,28 +4039,28 @@ var rooms;
 //A stats object which handles the collection of stats
 new StatsManager();
 //A colony array holding all of the colonies
-var colonies;
+exports.colonies = void 0;
 /**
  * This is the main loop for the program. Expect clean concise code, anything
  * else means I should really get to work.
  */
 const loop = ErrorMapper.wrapLoop(() => {
     //Check if we have any colonies. If we don't make one.
-    if (colonies == undefined) {
-        colonies = [];
+    if (exports.colonies == undefined) {
+        exports.colonies = [];
         for (let r in Game.rooms) {
-            colonies.push(new Colony(Game.rooms[r]));
+            exports.colonies.push(new Colony(Game.rooms[r]));
         }
     }
-    //Add running the colonies to the queue
-    for (var i = 0; i < colonies.length; i++)
-        queue.queueAdd(new Run_Colony(colonies[i]), priority.HIGH);
     //Proccess the requests from the last tick
     queue.proccessRequests();
     //Generate a pixel if we can.
     // if(Game.cpu.bucket == 10000) Game.cpu.generatePixel(); //Game.cpu.generatePixel(); is not a command in private servers, uncomment when pushing to public
     //Things that should always be ran
     queue.queueAdd(new creepAI_CreepManager(), priority.HIGH);
+    //Add running the colonies to the queue
+    for (var i = 0; i < exports.colonies.length; i++)
+        queue.queueAdd(new Run_Colony(exports.colonies[i]), priority.HIGH);
     //Add items that should always be run... but only if they can be
     queue.queueAdd(new update_Rooms(rooms), priority.LOW);
     queue.queueAdd(new collect_Stats(), priority.LOW);

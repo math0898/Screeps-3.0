@@ -22,7 +22,7 @@ var rooms: struc_Room[];
 //A stats object which handles the collection of stats
 var statsManager: StatsManager = new StatsManager();
 //A colony array holding all of the colonies
-var colonies: Colony[];
+export var colonies: Colony[];
 
 /**
  * This is the main loop for the program. Expect clean concise code, anything
@@ -37,9 +37,6 @@ export const loop = ErrorMapper.wrapLoop(() => { //Keep this main line
     }
   }
 
-  //Add running the colonies to the queue
-  for(var i = 0; i < colonies.length; i++) queue.queueAdd(new Run_Colony(colonies[i]), priority.HIGH);
-
   //Proccess the requests from the last tick
   queue.proccessRequests();
 
@@ -47,6 +44,8 @@ export const loop = ErrorMapper.wrapLoop(() => { //Keep this main line
   // if(Game.cpu.bucket == 10000) Game.cpu.generatePixel(); //Game.cpu.generatePixel(); is not a command in private servers, uncomment when pushing to public
   //Things that should always be ran
   queue.queueAdd(new creepAI_CreepManager(), priority.HIGH);
+  //Add running the colonies to the queue
+  for(var i = 0; i < colonies.length; i++) queue.queueAdd(new Run_Colony(colonies[i]), priority.HIGH);
 
   //Add items that should always be run... but only if they can be
   queue.queueAdd(new update_Rooms(rooms), priority.LOW);

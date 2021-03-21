@@ -1,24 +1,16 @@
 //Import the queue so we can request tasks, priority so we can set priority
 import { Queue } from "Queue";
 //Import the roles
-import { JumpStart } from "CreepTypes/JumpStart";
 import { Creep_Role, Creep_Prototype } from "CreepTypes/CreepRole";
 import { Scout } from "CreepTypes/Scout";
-import { Miner } from "CreepTypes/Miner";
-import { Carrier } from "CreepTypes/Carrier";
-import { Worker } from "CreepTypes/Worker";
 import { Defender } from "CreepTypes/Defender";
-import { RepairBot } from "CreepTypes/RepairBot";
+import { Colony } from "Colony";
+import { colonies } from "main";
 //Array indexed by a string which corrosponds to creep role object
 interface IDictionary { [index: string]: Creep_Role; }
 var params = {} as IDictionary;
-params["Jumpstart"] = new JumpStart();
 params["Scout"] = new Scout();
-params["Miner"] = new Miner();
-params["Carrier"] = new Carrier();
-params["Worker"] = new Worker();
 params["Defender"] = new Defender();
-params["RepairBot"] = new RepairBot();
 /**
  * This is the creep manager class. It is mostly static and handles the
  * management of creeps including their AI and memory.
@@ -49,10 +41,17 @@ export class CreepManager{
     for(let c in Game.creeps){
       //Short hand
       var creep:Creep = Game.creeps[c];
+      creep.say("adkfhkadf");
       //Check if the creep is spawning
       if (creep.spawning) break;
-      //Run AI
-      params[creep.memory.role].run(creep);
+      //If the creep has a defined role run that role's AI
+      if(creep.memory.role != undefined) params[creep.memory.role].run(creep);
+      //Otherwise run the general code passing through the colony's goals
+      else {
+        var a:Colony | undefined = undefined;
+        for (var i = 0; i < colonies.length; i++) if(colonies[i].home.name == creep.memory.room) { a = colonies[i]; break}
+        if (a != undefined)Creep_Prototype.run(creep, a!.goals.pop());
+      }
       //Check the creep's life
       Creep_Prototype.checkLife(creep);
     }

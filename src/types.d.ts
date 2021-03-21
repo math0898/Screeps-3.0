@@ -13,7 +13,7 @@ interface CreepMemory {
   working?:boolean;
   build?:boolean;
   repair?:string;
-  role: string;
+  role?: string;
   room: string;
 }
 

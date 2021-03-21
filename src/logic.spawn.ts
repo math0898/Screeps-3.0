@@ -1,24 +1,4 @@
 /**
- * Spawns a carrier creep at the given spawn and at the level given.
- * O(c) --> runs in constant time
- * @param capacity The max energy the creep can use
- * @param spawn The spawn where the creep will be spawned
- */
-function spawnCarrier(capacity:number, spawn:StructureSpawn){
-  //Temporaily stores how much energy we've spent on our creep
-  var spent = 100; //Starts at 100 since everything has 2 move (50) parts
-  //No matter how much energy we have the carrier starts with 2 move components
-  var body:BodyPartConstant[] = [MOVE,MOVE];
-  //Add move parts so as not to exceed 4 parts or 1/3 our energy budget
-  while(spent + 50 <= (capacity / 3)) { body.push(MOVE); spent += 50;}
-  //Fill the remaining space with carry (50) parts as not to exceed 600 total cost
-  while(spent + 50 <= capacity) { body.push(CARRY); spent += 50;}
-  //Temp name storing
-  var name = '[' + spawn.room.name + '] Carrier ' + Game.time;
-  //Spawn the creep, Increment the carrier count in the room if successful
-  if(spawn.spawnCreep(body, name, {memory: {room: spawn.room.name, role: 'Carrier'}}) == OK) spawn.room.memory.counts.Carrier++;
-}
-/**
  * Spawns a defender creep at the given spawn and at the level given.
  * O(c) --> Runs in constant time.
  * @param capacity The max energy the creep can use
@@ -47,7 +27,7 @@ function spawnDefender(capacity:number, spawn:StructureSpawn) {
   //Temp name storing
   var name = '[' + spawn.room.name + '] Defender ' + Game.time;
   //Spawn the defender
-  spawn.spawnCreep(body, name, {memory: {room: spawn.room.name, role: 'Defender'}}) == OK;
+  spawn.spawnCreep(body, name, {memory: {room: spawn.room.name, role: 'Defender'}});
 }
 /**
  * Spawns a claimer creep at the given spawn and at the level given.
@@ -98,7 +78,7 @@ function spawnHarvester(capacity:number, spawn:StructureSpawn){
   //Temp name storing
   var name = '[' + spawn.room.name + '] Harvester ' + Game.time;
   //Spawn the creep, Increment the harvester count in the room if successful
-  if(spawn.spawnCreep(body, name, {memory: {room: spawn.room.name, role: 'Jumpstart'}}) == OK) spawn.room.memory.counts.Jumpstart++;
+  if(spawn.spawnCreep(body, name, {memory: {room: spawn.room.name}}) == OK) spawn.room.memory.counts.Worker++;
 }
 /**
  * Spawns a harvester creep at the given spawn and at the level given.
@@ -120,41 +100,7 @@ function spawnBigBoiHarvester(capacity:number, spawn:StructureSpawn){
   //Temp name storing
   var name = '[' + spawn.room.name + '] Harvester ' + Game.time;
   //Spawn the creep, Increment the harvester count in the room if successful
-  if(spawn.spawnCreep(body, name, {memory: {room: spawn.room.name, role: 'Jumpstart'}}) == OK) spawn.room.memory.counts.Jumpstart++;
-}
-/**
- * Spawns a miner creep at the given spawn and at the level given.
- * O(c) --> runs in constant time
- * @param capacity The max energy the creep can use
- * @param spawn The spawn where the creep will be spawned
- */
-function spawnMiner(capacity:number, spawn:StructureSpawn){
-  //The amount of energy towards our total we've spent
-  var spent = 250; //Starts at 200 since we have 1 move (50) parts and 2 work (100) parts
-  //The starting body for our miner
-  var body = [MOVE,WORK,WORK];
-  //Append work body parts until out of energy, not to exceed 5 total
-  while(spent + 100 <= capacity && body.length < 8) { body.push(WORK); spent += 100; }
-  while(spent + 50 <= capacity && body.length < 17) { body.push(MOVE); spent += 50; }
-  //Temp name storing
-  var name = '[' + spawn.room.name + '] Miner ' + Game.time;
-  //Spawn the creep, Increment the miner count in the room if successful
-  if(spawn.spawnCreep(body, name, {memory: {room: spawn.room.name, role: 'Miner'}}) == OK) spawn.room.memory.counts.Miner++;
-}
-/**
- * Spawns a repair bot creep at the given spawn and at the level given.
- * O(c) --> runs in constant time
- * @param capacity The max energy the creep can use
- * @param spawn The spawn where the creep will be spawned
- */
-function spawnRepairBot(capacity:number, spawn:StructureSpawn){
-  //This little guy just needs to move around and fix things
-  //Alternate case
-  var body = [MOVE,MOVE,CARRY,CARRY,WORK]; //Cost 300
-  //Temp name storing
-  var name = '[' + spawn.room.name + '] Repair Bot ' + Game.time;
-  //Spawn the creep, Increment the repair bot count in the room if successful
-  if(spawn.spawnCreep(body, name, {memory: {room: spawn.room.name, role: 'RepairBot'}}) == OK) spawn.room.memory.counts.RepairBot++;
+  if(spawn.spawnCreep(body, name, {memory: {room: spawn.room.name}}) == OK) spawn.room.memory.counts.Worker++;
 }
 /**
  * Spawns a scout creep at the given spawn and at the level given.
@@ -192,7 +138,7 @@ function spawnWorker(capacity:number, spawn:StructureSpawn){
   //Temp name storing
   var name = '[' + spawn.room.name + '] Worker ' + Game.time;
   //Spawn the creep, Increment the upgrader count in the room if successful
-  if(spawn.spawnCreep(body, name, {memory: {room: spawn.room.name, role: 'Worker'}}) == OK) spawn.room.memory.counts.Worker++;
+  if(spawn.spawnCreep(body, name, {memory: {room: spawn.room.name}}) == OK) spawn.room.memory.counts.Worker++;
 }
 //Public facing functions
  /**
@@ -224,11 +170,11 @@ export function spawn(currentRoom:Room){
         //If there are hostiles spawn a defender
         if(hostiles) spawnDefender(capacity, spawn);
         //Check if a harvester creep needs to be spawned, this includes recovery if all creeps die
-        else if(currentRoom.memory.counts.Jumpstart < 1) spawnHarvester(capacity, spawn);
+        else if(currentRoom.memory.counts.Worker < 1) spawnHarvester(capacity, spawn);
         //Check if a carrier creep needs to be spawned, 2 per miner
         // else if(currentRoom.memory.counts.Carrier < currentRoom.memory.counts.Miner * 2) spawnCarrier(capacity, spawn);
         //Check if a miner creep needs to be spawned, 1 per source
-        else if(currentRoom.memory.counts.Jumpstart < 6) spawnBigBoiHarvester(capacity, spawn);
+        else if(currentRoom.memory.counts.Worker < 10) spawnBigBoiHarvester(capacity, spawn);
         //Check if workers should be spawned, 4 base, // TODO: check if more can be spawned
         else if(currentRoom.memory.counts.Worker < 4) spawnWorker(capacity, spawn);
         //Check if a repair bot should be spawned

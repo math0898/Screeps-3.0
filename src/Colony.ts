@@ -15,6 +15,7 @@ export class Colony{
   era:number;
   home:Room;
   neighbors?:Room[];
+  goals:string[] = [];
   neighborsPrototype?:struc_Room[];
   homePrototype:struc_Room;
   spawnManager:SpawnManager;
@@ -31,6 +32,19 @@ export class Colony{
 
   //Methods
   run(){
+    //Reset the goals
+    this.goals = []
+    //Search for a set of objects
+    var r:Structure[] | null = this.home.find(FIND_STRUCTURES, {filter: (c) => c.hits < c.hitsMax && c.structureType != STRUCTURE_WALL});
+    var c:ConstructionSite[] | null = this.home.find(FIND_CONSTRUCTION_SITES);
+    var d:Resource[] | null = this.home.find(FIND_DROPPED_RESOURCES, {filter: {resourceType: RESOURCE_ENERGY}});
+    var s:Structure[] | null = this.home.find(FIND_MY_STRUCTURES, {filter: (s) => (s.structureType == STRUCTURE_SPAWN || s.structureType == STRUCTURE_EXTENSION || s.structureType == STRUCTURE_TOWER) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0}); //O(7 + 3n)
+
+    this.goals.push("Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade");
+    if(c != null && c.length > 0) this.goals.push("Build","Build","Build","Build")
+    if(r != null && r.length > 0) this.goals.push("Fix","Fix");
+    if(s != null && s.length > 0) this.goals.push("Fill","Fill","Fill","FILL","FILL");
+
     if (Game.time % 100 == 0) this.census();
     //Run the spawn manger.
     spawn(this.home);
@@ -50,7 +64,7 @@ export class Colony{
     for(let c in Game.creeps){
       var creep:Creep = Game.creeps[c];
       if (creep.memory.room != this.home.name) continue;
-      this.home.memory.counts[creep.memory.role]++;
+      this.home.memory.counts["Worker"]++;
     }
   }
 }
