@@ -76,7 +76,7 @@ function spawnHarvester(capacity:number, spawn:StructureSpawn){
   //Temp body storing
   var body = [MOVE,MOVE,CARRY,CARRY,WORK]; //Cost - 300
   //Temp name storing
-  var name = '[' + spawn.room.name + '] Harvester ' + Game.time;
+  var name = '[' + spawn.room.name + '] Worker ' + Game.time;
   //Spawn the creep, Increment the harvester count in the room if successful
   if(spawn.spawnCreep(body, name, {memory: {room: spawn.room.name}}) == OK) spawn.room.memory.counts.Worker++;
 }
@@ -98,7 +98,7 @@ function spawnBigBoiHarvester(capacity:number, spawn:StructureSpawn){
   //Add work parts until we're out of energy but not to exceed 750 cost
   while(spent + 100 <= capacity ) { body.push(WORK); spent += 100;}
   //Temp name storing
-  var name = '[' + spawn.room.name + '] Harvester ' + Game.time;
+  var name = '[' + spawn.room.name + '] Worker ' + Game.time;
   //Spawn the creep, Increment the harvester count in the room if successful
   if(spawn.spawnCreep(body, name, {memory: {room: spawn.room.name}}) == OK) spawn.room.memory.counts.Worker++;
 }

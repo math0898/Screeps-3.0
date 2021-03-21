@@ -41,7 +41,6 @@ export class CreepManager{
     for(let c in Game.creeps){
       //Short hand
       var creep:Creep = Game.creeps[c];
-      creep.say("adkfhkadf");
       //Check if the creep is spawning
       if (creep.spawning) break;
       //If the creep has a defined role run that role's AI
@@ -50,7 +49,7 @@ export class CreepManager{
       else {
         var a:Colony | undefined = undefined;
         for (var i = 0; i < colonies.length; i++) if(colonies[i].home.name == creep.memory.room) { a = colonies[i]; break}
-        if (a != undefined)Creep_Prototype.run(creep, a!.goals.pop());
+        if (a != undefined) Creep_Prototype.run(creep, a!.goals.pop());
       }
       //Check the creep's life
       Creep_Prototype.checkLife(creep);

@@ -43,7 +43,7 @@ export class Colony{
     this.goals.push("Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade");
     if(c != null && c.length > 0) this.goals.push("Build","Build","Build","Build")
     if(r != null && r.length > 0) this.goals.push("Fix","Fix");
-    if(s != null && s.length > 0) this.goals.push("Fill","Fill","Fill","FILL","FILL");
+    if(s != null && s.length > 0) this.goals.push("Fill","Fill","Fill","Fill","Fill");
 
     if (Game.time % 100 == 0) this.census();
     //Run the spawn manger.

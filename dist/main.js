@@ -3265,6 +3265,7 @@ class Creep_Prototype {
             creep.memory.working = false;
         //Lets Spend some energy
         if (creep.memory.working) {
+            creep.say(goal + "");
             //We should otherwise fill up buildings
             switch (goal) {
                 case undefined:
@@ -3392,7 +3393,7 @@ class CreepManager {
         for (let c in Game.creeps) {
             //Short hand
             var creep = Game.creeps[c];
-            creep.say("adkfhkadf");
+            creep.say(creep.memory.role + "");
             //Check if the creep is spawning
             if (creep.spawning)
                 break;
@@ -3493,49 +3494,10 @@ class SpawnManager {
         this.spawnQueue = new SpawnQueue(this.spawns);
     }
     /**
-     * Runs the logic for creeps that need to be added at the first level.
-     * Runtime: O(c) ---> Runs in constant time.
-     */
-    level1() {
-        //Add a Jumpstart creep if we're not empty
-        if (this.room.controller.level == 1 && this.spawnQueue.isEmpty() && this.room.memory.counts["Jumpstart"] < 2)
-            this.spawnQueue.add(new SpawnJumpstart(300));
-    }
-    /**
-     * Runs the logic for creeps that need to be added at the second level.
-     * Runtime: O(c) ---> Runs in constant time.
-     */
-    level2() {
-        //Check if the counts are defined... if they are set them.
-        if (this.room.memory.counts["Miner"] == undefined)
-            this.room.memory.counts["Miner"] = 0;
-        if (this.room.memory.counts["Carrier"] == undefined)
-            this.room.memory.counts["Carrier"] = 0;
-        if (this.room.memory.counts["Worker"] == undefined)
-            this.room.memory.counts["Worker"] = 0;
-        //Get the capacity we can spawn at.
-        var capacity = 300 + (this.room.find(FIND_MY_STRUCTURES, { filter: (s) => s.structureType == STRUCTURE_EXTENSION }).length * 50); //O(t)
-        if (this.room.memory.counts["Miner"] < this.room.find(FIND_SOURCES).length && !(this.spawnQueue.contains("Miner")))
-            this.spawnQueue.add(new SpawnMiner(capacity));
-        if (this.room.memory.counts["Carrier"] * 2 < this.room.memory.counts["Miner"] && !(this.spawnQueue.contains("Carrier")))
-            this.spawnQueue.add(new SpawnCarrier(capacity));
-        if (this.room.memory.counts["Worker"] < 3 && !(this.spawnQueue.contains("Worker")))
-            this.spawnQueue.add(new SpawnWorker(capacity));
-    }
-    /**
      * Runs the SpawnManager which looks for creeps that need to be spawned and
      * adds them to the spawn queue.
      */
     run() {
-        //Run the logic for each controller level
-        switch (this.room.controller.level) {
-            case 1:
-                this.level1();
-                break;
-            case 2:
-                this.level2();
-                break;
-        }
         this.spawnQueue.print();
         //TODO logic for spawning creeps
         //Run the queue if it isn't empty
@@ -3587,149 +3549,7 @@ class SpawnQueue {
         return false;
     }
 }
-/**
- * This abstract class defines what an item in the queue looks like.
- */
-class AbstractSpawnCreep {
-    //Constructor
-    constructor(c) {
-        //Variables
-        this.role = "";
-        this.capacity = c;
-        this.body = this.generateBody(c);
-    }
-    //Methods
-    generateBody(_c) { return []; }
-    run(spawn, t = undefined) {
-        //Try to spawn the creep
-        var attempt = spawn.spawnCreep(this.body, this.getName(spawn), { memory: { role: this.role, room: spawn.room.name, target: t } });
-        //Try to spawn and if it works increment, Increase the count on the home memory counts
-        // if( attempt == OK) spawn.room.memory.counts[this.role]++;
-        //Spawn the creep and return what it says
-        return attempt;
-    }
-    /**
-     * This function defines how creeps are named.
-     */
-    getName(spawn) { return '[' + spawn.room.name + '] ' + this.role + ' ' + Game.time; }
-}
-/**
- * These are the classes which handle the actual spawning of a creep.
- */
-/**
- * A class which defines spawning a carrier creep at the given spawn and at the
- * level given.
- * O(c) --> runs in constant time
- * @param capacity The max energy the creep can use
- * @param spawn The spawn where the creep will be spawned
- */
-class SpawnCarrier extends AbstractSpawnCreep {
-    constructor() {
-        super(...arguments);
-        //Role name
-        this.role = "Carrier";
-    }
-    //How the body is generated
-    generateBody(c) {
-        //Temporaily stores how much energy we've spent on our creep
-        var spent = 100; //Starts at 100 since everything has 2 move (50) parts
-        //No matter how much energy we have the carrier starts with 2 move components
-        var body = [MOVE, MOVE];
-        //Add move parts so as not to exceed 4 parts or 1/3 our energy budget
-        while (spent + 50 <= (c / 3) && body.length < 4) {
-            body.push(MOVE);
-            spent += 50;
-        }
-        //Fill the remaining space with carry (50) parts as not to exceed 600 total cost
-        while (spent + 50 <= c && spent < 600) {
-            body.push(CARRY);
-            spent += 50;
-        }
-        //Return the body we made
-        return body;
-    }
-}
-/**
- * Spawns a jumpstart creep at the given spawn and at the level given.
- * O(c) --> runs in constant time
- * @param capacity The max energy the creep can use
- * @param spawn The spawn where the creep will be spawned
- */
-class SpawnJumpstart extends AbstractSpawnCreep {
-    constructor() {
-        super(...arguments);
-        //Role name
-        this.role = "Jumpstart";
-    }
-    //How the body is made
-    generateBody(_c) { return [MOVE, MOVE, CARRY, CARRY, WORK]; }
-}
-/**
- * Spawns a miner creep at the given spawn and at the level given.
- * O(c) --> runs in constant time
- * @param capacity The max energy the creep can use
- * @param spawn The spawn where the creep will be spawned
- */
-class SpawnMiner extends AbstractSpawnCreep {
-    constructor() {
-        super(...arguments);
-        //Role name
-        this.role = "Miner";
-    }
-    //How the body is made
-    generateBody(c) {
-        //The amount of energy towards our total we've spent
-        var spent = 250; //Starts at 200 since we have 1 move (50) parts and 2 work (100) parts
-        //The starting body for our miner
-        var body = [MOVE, WORK, WORK];
-        //Append work body parts until out of energy, not to exceed 5 total
-        while (spent + 100 <= c && body.length < 6) {
-            body.push(WORK);
-            spent += 100;
-        }
-        //Return the body
-        return body;
-    }
-}
-/**
- * Spawns a worker creep at the given spawn and at the level given.
- * O(c) --> runs in constant time
- * @param capacity The max energy the creep can use
- * @param spawn The spawn where the creep will be spawned
- */
-class SpawnWorker extends AbstractSpawnCreep {
-    constructor() {
-        super(...arguments);
-        //Role Name
-        this.role = "Worker";
-    }
-    //How the body is made
-    generateBody(c) {
-        //The amount of energy towards our total we've spent
-        var spent = 200; //Starts at 200 since we have 2 move (50) parts and 2 carry (50) parts
-        //The starting body for our worker
-        var body = [MOVE, MOVE, CARRY, CARRY];
-        //Add another carry part if we have the space
-        if (c > 550) {
-            body.push(CARRY);
-            spent += 50;
-        }
-        //Add work parts until we're out of energy but not to exceed 750 cost
-        while (spent + 100 <= c && spent < 750) {
-            body.push(WORK);
-            spent += 100;
-        }
-        //Return the body
-        return body;
-    }
-}
 
-/**
- * Spawns a carrier creep at the given spawn and at the level given.
- * O(c) --> runs in constant time
- * @param capacity The max energy the creep can use
- * @param spawn The spawn where the creep will be spawned
- */
 /**
  * Spawns a defender creep at the given spawn and at the level given.
  * O(c) --> Runs in constant time.
@@ -3989,7 +3809,7 @@ class Colony {
         if (r != null && r.length > 0)
             this.goals.push("Fix", "Fix");
         if (s != null && s.length > 0)
-            this.goals.push("Fill", "Fill", "Fill", "FILL", "FILL");
+            this.goals.push("Fill", "Fill", "Fill", "Fill", "Fill");
         if (Game.time % 100 == 0)
             this.census();
         //Run the spawn manger.
