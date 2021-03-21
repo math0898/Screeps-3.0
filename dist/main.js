@@ -3265,7 +3265,6 @@ class Creep_Prototype {
             creep.memory.working = false;
         //Lets Spend some energy
         if (creep.memory.working) {
-            creep.say(goal + "");
             //We should otherwise fill up buildings
             switch (goal) {
                 case undefined:
@@ -3393,7 +3392,6 @@ class CreepManager {
         for (let c in Game.creeps) {
             //Short hand
             var creep = Game.creeps[c];
-            creep.say(creep.memory.role + "");
             //Check if the creep is spawning
             if (creep.spawning)
                 break;
@@ -3638,7 +3636,7 @@ function spawnHarvester(capacity, spawn) {
     //Temp body storing
     var body = [MOVE, MOVE, CARRY, CARRY, WORK]; //Cost - 300
     //Temp name storing
-    var name = '[' + spawn.room.name + '] Harvester ' + Game.time;
+    var name = '[' + spawn.room.name + '] Worker ' + Game.time;
     //Spawn the creep, Increment the harvester count in the room if successful
     if (spawn.spawnCreep(body, name, { memory: { room: spawn.room.name } }) == OK)
         spawn.room.memory.counts.Worker++;
@@ -3670,7 +3668,7 @@ function spawnBigBoiHarvester(capacity, spawn) {
         spent += 100;
     }
     //Temp name storing
-    var name = '[' + spawn.room.name + '] Harvester ' + Game.time;
+    var name = '[' + spawn.room.name + '] Worker ' + Game.time;
     //Spawn the creep, Increment the harvester count in the room if successful
     if (spawn.spawnCreep(body, name, { memory: { room: spawn.room.name } }) == OK)
         spawn.room.memory.counts.Worker++;
@@ -3793,9 +3791,35 @@ class Colony {
                 this.era = 0;
         this.spawnManager = new SpawnManager(Game.rooms[this.homePrototype.getRoomRefrence()]);
         this.home.memory.counts = p;
+        this.construction = [];
+        this.constructionStage = 0;
     }
     //Methods
     run() {
+        //Do construction projects
+        if (this.constructionStage == 0) {
+            for (let s in Game.spawns) {
+                if (Game.spawns[s].room.name == this.home.name) {
+                    var train = Game.spawns[s];
+                    var sources = train.room.find(FIND_SOURCES);
+                    for (var i = 0; i < sources.length; i++) {
+                        var path = train.pos.findPathTo(sources[i]);
+                        for (var j = 0; j < path.length - 1; j++) {
+                            this.construction.push(new ConstructionProject(new RoomPosition(path[j].x, path[j].y, train.room.name), STRUCTURE_ROAD));
+                        }
+                        path = sources[i].pos.findPathTo(sources[i].room.controller);
+                        for (var j = path.length - 2; j >= 0; j--) {
+                            this.construction.push(new ConstructionProject(new RoomPosition(path[j].x, path[j].y, train.room.name), STRUCTURE_ROAD));
+                        }
+                    }
+                    var path = train.pos.findPathTo(train.room.controller);
+                    for (var j = 0; j < path.length - 1; j++) {
+                        this.construction.push(new ConstructionProject(new RoomPosition(path[j].x, path[j].y, train.room.name), STRUCTURE_ROAD));
+                    }
+                }
+            }
+            this.constructionStage++;
+        }
         //Reset the goals
         this.goals = [];
         //Search for a set of objects
@@ -3814,6 +3838,8 @@ class Colony {
             this.census();
         //Run the spawn manger.
         spawn(this.home);
+        if (this.construction.length > 0 && c.length == 0)
+            this.construction.pop().place();
     }
     /**
      * This method runs a quick census of all the creeps and updates the memory in
@@ -3844,6 +3870,15 @@ class Run_Colony extends template {
     //Methods
     run() {
         this.colony.run();
+    }
+}
+class ConstructionProject {
+    constructor(p, t) {
+        this.pos = p;
+        this.type = t;
+    }
+    place() {
+        Game.rooms[this.pos.roomName].createConstructionSite(this.pos, this.type);
     }
 }
 

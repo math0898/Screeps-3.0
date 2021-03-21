@@ -19,6 +19,8 @@ export class Colony{
   neighborsPrototype?:struc_Room[];
   homePrototype:struc_Room;
   spawnManager:SpawnManager;
+  construction:ConstructionProject[];
+  constructionStage:number;
 
   //Constructors
   constructor(r:Room){
@@ -28,10 +30,37 @@ export class Colony{
     if(r.controller != undefined) if(r.controller.level <= 2) this.era = 0;
     this.spawnManager = new SpawnManager(Game.rooms[this.homePrototype.getRoomRefrence()]);
     this.home.memory.counts = p;
+    this.construction = [];
+    this.constructionStage = 0;
   }
 
   //Methods
   run(){
+    //Do construction projects
+    if(this.constructionStage == 0) {
+      for(let s in Game.spawns){
+        if(Game.spawns[s].room.name == this.home.name){
+          var train = Game.spawns[s];
+          var sources = train.room.find(FIND_SOURCES);
+          for(var i = 0; i < sources.length; i++) {
+            var path = train.pos.findPathTo(sources[i]);
+            for(var j = 0; j < path.length -1; j++){
+              this.construction.push(new ConstructionProject(new RoomPosition(path[j].x, path[j].y, train.room.name), STRUCTURE_ROAD));
+            }
+            path = sources[i].pos.findPathTo(sources[i].room.controller!);
+            for(var j = path.length -2 ; j >= 0; j--){
+              this.construction.push(new ConstructionProject(new RoomPosition(path[j].x, path[j].y, train.room.name), STRUCTURE_ROAD));
+            }
+          }
+          var path = train.pos.findPathTo(train.room.controller!);
+          for(var j = 0 ; j < path.length -1; j++){
+            this.construction.push(new ConstructionProject(new RoomPosition(path[j].x, path[j].y, train.room.name), STRUCTURE_ROAD));
+          }
+        }
+      }
+      this.constructionStage++;
+    }
+
     //Reset the goals
     this.goals = []
     //Search for a set of objects
@@ -48,6 +77,9 @@ export class Colony{
     if (Game.time % 100 == 0) this.census();
     //Run the spawn manger.
     spawn(this.home);
+
+
+    if(this.construction.length > 0 && c.length == 0) this.construction.pop()!.place();
   }
 
   /**
@@ -83,5 +115,18 @@ export class Run_Colony extends template implements task {
   //Methods
   run(){
     this.colony.run();
+  }
+}
+
+class ConstructionProject {
+  pos:RoomPosition;
+  type:BuildableStructureConstant;
+  constructor(p:RoomPosition, t:BuildableStructureConstant){
+    this.pos = p;
+    this.type = t;
+  }
+
+  place(){
+    Game.rooms[this.pos.roomName].createConstructionSite(this.pos, this.type)
   }
 }
