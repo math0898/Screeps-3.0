@@ -5,7 +5,7 @@ import { Creep_Role, Creep_Prototype } from "CreepTypes/CreepRole";
 import { Scout } from "CreepTypes/Scout";
 import { Defender } from "CreepTypes/Defender";
 import { Colony } from "Colony";
-import { colonies } from "main";
+import { colonies } from "main"
 //Array indexed by a string which corrosponds to creep role object
 interface IDictionary { [index: string]: Creep_Role; }
 var params = {} as IDictionary;
@@ -76,9 +76,6 @@ export class run_CreepManager extends template implements task {
   //Variables
   name:string = "Run The Creep Manager";
 
-  //Constructors
-  constructor(){super();}
-
   //Real Methods
   run(){
     //Simple enough I'd say
@@ -91,9 +88,6 @@ export class run_CreepManager extends template implements task {
 export class creepAI_CreepManager extends template implements task {
   //Variables
   name:string = "Run Creep AI";
-
-  //Constructors
-  constructor(){super();}
 
   //Real Methods
   run(){
@@ -108,9 +102,6 @@ export class creepAI_CreepManager extends template implements task {
 export class cleanMemory_CreepManager extends template implements task {
   //Variables
   name:string = "Clean Creep Memory";
-
-  //Constructors
-  constructor(){super();}
 
   //Real Methods
   run(){

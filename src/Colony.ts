@@ -5,6 +5,7 @@ import { struc_Room } from "Room";
 //Import the spawn manager
 import { SpawnManager } from "SpawnManager";
 import { spawn } from "logic.spawn";
+import { Queue } from "Queue";
 interface IDictionary { [index: string]: number; }
 var p = {} as IDictionary;
 /**
@@ -36,52 +37,14 @@ export class Colony{
 
   //Methods
   run(){
-    //Do construction projects
-    if(this.constructionStage == 0) {
-      for(let s in Game.spawns){
-        if(Game.spawns[s].room.name == this.home.name){
-          var train = Game.spawns[s];
-          var sources = train.room.find(FIND_SOURCES);
-          for(var i = 0; i < sources.length; i++) {
-            var path = train.pos.findPathTo(sources[i]);
-            for(var j = 0; j < path.length -1; j++){
-              this.construction.push(new ConstructionProject(new RoomPosition(path[j].x, path[j].y, train.room.name), STRUCTURE_ROAD));
-            }
-            path = sources[i].pos.findPathTo(sources[i].room.controller!);
-            for(var j = path.length -2 ; j >= 0; j--){
-              this.construction.push(new ConstructionProject(new RoomPosition(path[j].x, path[j].y, train.room.name), STRUCTURE_ROAD));
-            }
-          }
-          var path = train.pos.findPathTo(train.room.controller!);
-          for(var j = 0 ; j < path.length -1; j++){
-            this.construction.push(new ConstructionProject(new RoomPosition(path[j].x, path[j].y, train.room.name), STRUCTURE_ROAD));
-          }
-        }
-      }
-      this.constructionStage++;
-    }
-
-    //Reset the goals
-    this.goals = []
-    //Search for a set of objects
-    var r:Structure[] | null = this.home.find(FIND_STRUCTURES, {filter: (c) => c.hits < c.hitsMax && c.structureType != STRUCTURE_WALL});
-    var c:ConstructionSite[] | null = this.home.find(FIND_CONSTRUCTION_SITES);
-    var d:Resource[] | null = this.home.find(FIND_DROPPED_RESOURCES, {filter: {resourceType: RESOURCE_ENERGY}});
-    var s:Structure[] | null = this.home.find(FIND_MY_STRUCTURES, {filter: (s) => (s.structureType == STRUCTURE_SPAWN || s.structureType == STRUCTURE_EXTENSION || s.structureType == STRUCTURE_TOWER) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0}); //O(7 + 3n)
-
-    this.goals.push("Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade");
-    if(c != null && c.length > 0) this.goals.push("Build","Build","Build","Build")
-    if(r != null && r.length > 0) this.goals.push("Fix","Fix");
-    if(s != null && s.length > 0) this.goals.push("Fill","Fill","Fill","Fill","Fill");
-
-    if (Game.time % 100 == 0) this.census();
+    //Request a census every 100 ticks
+    if(Game.time % 100 == 0) Queue.request(new Run_Census(this));
+    //If we're not done with construction make a request to run the manager
+    if(this.constructionStage != 2) Queue.request(new Manage_Construction(this));
+    this.checkGoals();
     //Run the spawn manger.
     spawn(this.home);
-
-
-    if(this.construction.length > 0 && c.length == 0) this.construction.pop()!.place();
   }
-
   /**
    * This method runs a quick census of all the creeps and updates the memory in
    * this.home to their numbers.
@@ -92,13 +55,69 @@ export class Colony{
     this.home.memory.counts["Jumpstart"] = 0;
     this.home.memory.counts["Worker"] = 0;
     this.home.memory.counts["RepairBot"] = 0;
+    this.home.memory.counts["Scout"] = 0;
 
     for(let c in Game.creeps){
       var creep:Creep = Game.creeps[c];
       if (creep.memory.room != this.home.name) continue;
-      this.home.memory.counts["Worker"]++;
+      if (creep.memory.role == undefined) this.home.memory.counts["Worker"]++;
+      else this.home.memory.counts[creep.memory.role]++;
     }
   }
+  /**
+   * checkGoals checks the goals of the colony and updates it with new roles
+   * which are currently needed.
+   */
+   checkGoals(){
+     //Reset the goals
+     this.goals = []
+     //Search for a set of objects
+     var threashold:number = 3;
+     for (var i = 1; i <= this.home.controller!.level; i++) threashold = threashold * 10;
+     var w:Structure[] | null = this.home.find(FIND_STRUCTURES, {filter: (c) => (c.structureType == STRUCTURE_RAMPART || c.structureType == STRUCTURE_WALL) && c.hits < threashold});
+     var r:Structure[] | null = this.home.find(FIND_STRUCTURES, {filter: (c) => c.hits < c.hitsMax && ( c.structureType != STRUCTURE_WALL && c.structureType != STRUCTURE_RAMPART)});
+     var c:ConstructionSite[] | null = this.home.find(FIND_CONSTRUCTION_SITES);
+     var d:Resource[] | null = this.home.find(FIND_DROPPED_RESOURCES, {filter: {resourceType: RESOURCE_ENERGY}});
+     var s:Structure[] | null = this.home.find(FIND_MY_STRUCTURES, {filter: (s) => (s.structureType == STRUCTURE_SPAWN || s.structureType == STRUCTURE_EXTENSION || s.structureType == STRUCTURE_TOWER) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0}); //O(7 + 3n)
+
+     this.goals.push("Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade");
+     if(w != null && w.length > 0) this.goals.push("Wall");
+     if(r != null && r.length > 0) this.goals.push("Fix","Fix");
+     if(c != null && c.length > 0) this.goals.push("Build","Build","Build","Build")
+     if(s != null && s.length > 0) this.goals.push("Fill","Fill","Fill","Fill","Fill");
+   }
+   /**
+    * This method handles the construction of projects in the colony.
+    */
+    manageConstruction(){
+      //Do construction projects
+      if(this.constructionStage == 0) {
+        for(let s in Game.spawns){
+          if(Game.spawns[s].room.name == this.home.name){
+            var train = Game.spawns[s];
+            var sources = train.room.find(FIND_SOURCES);
+            for(var i = 0; i < sources.length; i++) {
+              var path = train.pos.findPathTo(sources[i], {ignoreRoads: true, ignoreCreeps: true, swampCost: 1});
+              for(var j = 0; j < path.length -1; j++){
+                this.construction.push(new ConstructionProject(new RoomPosition(path[j].x, path[j].y, train.room.name), STRUCTURE_ROAD));
+              }
+              path = sources[i].pos.findPathTo(sources[i].room.controller!, {ignoreRoads: true, ignoreCreeps: true, swampCost: 1});
+              for(var j = path.length -2 ; j >= 0; j--){
+                this.construction.push(new ConstructionProject(new RoomPosition(path[j].x, path[j].y, train.room.name), STRUCTURE_ROAD));
+              }
+            }
+            var path = train.pos.findPathTo(train.room.controller!, {ignoreRoads: true, ignoreCreeps: true, swampCost: 1});
+            for(var j = 0 ; j < path.length -1; j++){
+              this.construction.push(new ConstructionProject(new RoomPosition(path[j].x, path[j].y, train.room.name), STRUCTURE_ROAD));
+            }
+          }
+        }
+        this.constructionStage++;
+      }
+      var c:ConstructionSite[] | null = this.home.find(FIND_CONSTRUCTION_SITES);
+      if(this.construction.length > 0 && c.length == 0) this.construction.pop()!.place();
+      if(this.construction.length == 0 && c.length == 0) this.constructionStage++;
+    }
 }
 
 export class Run_Colony extends template implements task {
@@ -115,6 +134,57 @@ export class Run_Colony extends template implements task {
   //Methods
   run(){
     this.colony.run();
+  }
+}
+
+export class Run_Census extends template implements task {
+  //Variables
+  name:string = "Run Census";
+  colony:Colony;
+
+  //Construtor
+  constructor(c:Colony){
+    super();
+    this.colony = c;
+  }
+
+  //Methods
+  run(){
+    this.colony.census();
+  }
+}
+
+export class Setup_Goals extends template implements task {
+  //Variables
+  name:string = "Setup Goals";
+  colony:Colony;
+
+  //Constructor
+  constructor(c:Colony){
+    super();
+    this.colony = c;
+  }
+
+  //Methods
+  run(){
+    this.colony.checkGoals();
+  }
+}
+
+export class Manage_Construction extends template implements task {
+  //Varaibles
+  name:string = "Manage Construction";
+  colony:Colony;
+
+  //Constructor
+  constructor(c:Colony){
+    super();
+    this.colony = c;
+  }
+
+  //Methods
+  run(){
+    this.colony.manageConstruction();
   }
 }
 

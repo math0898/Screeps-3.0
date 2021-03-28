@@ -14,6 +14,7 @@ interface CreepMemory {
   build?:boolean;
   repair?:string;
   role?: string;
+  reinforce?:string;
   room: string;
 }
 

@@ -87,6 +87,7 @@ function spawnHarvester(capacity:number, spawn:StructureSpawn){
  * @param spawn The spawn where the creep will be spawned
  */
 function spawnBigBoiHarvester(capacity:number, spawn:StructureSpawn){
+  if (capacity > 300 + 20 * 50) capacity = 300 + 20*50 //Cap the worker size
   //The amount of energy towards our total we've spent
   var spent = 200; //Starts at 200 since we have 2 move (50) parts and 2 carry (50) parts
   //The starting body for our worker
@@ -108,16 +109,16 @@ function spawnBigBoiHarvester(capacity:number, spawn:StructureSpawn){
  * @param capacity The max energy the creep can use
  * @param spawn The spawn where the creep will be spawned
  */
-// function spawnScout(capacity, spawn:StructureSpawn){
-//   //It's important to note that the scout creep's only purpose is to move and
-//   // as such its body leaves much to desire
-//   //Temp body storing
-//   var body = [MOVE]; //Cost - 50
-//   //Temp name storing
-//   var name = '[' + spawn.room.name + '] Scout ' + Game.time;
-//   //Spawn the creep
-//   if(spawn.spawnCreep(body, name, {memory: {role: 'Scout', scoutTarget: spawn.room.memory.scoutTarget}}) == OK) spawn.room.memory.count.scout++;
-// }
+function spawnScout(capacity:number, spawn:StructureSpawn){
+  //It's important to note that the scout creep's only purpose is to move and
+  // as such its body leaves much to desire
+  //Temp body storing
+  var body = [MOVE]; //Cost - 50
+  //Temp name storing
+  var name = '[' + spawn.room.name + '] Scout ' + Game.time;
+  //Spawn the creep
+  if(spawn.spawnCreep(body, name, {memory: {role: 'Scout', target: Game.flags["Scout"].pos.roomName, room: spawn.room.name}}) == OK) spawn.room.memory.counts.Scout++;
+}
 /**
  * Spawns a worker creep at the given spawn and at the level given.
  * O(c) --> runs in constant time
@@ -180,7 +181,7 @@ export function spawn(currentRoom:Room){
         //Check if a repair bot should be spawned
         // else if(currentRoom.memory.counts.RepairBot < 1) spawnRepairBot(capacity, spawn);
         //Check if a scout should be spawned
-        // else if(currentRoom.memory.count.scout < 1 && currentRoom.scoutTarget != null) spawnScout(capacity, spawn);
+        else if(currentRoom.memory.counts.Scout < 1 && Game.flags["Scout"] != null) spawnScout(capacity, spawn);
         //Check if a claimer should be spawned
         // else if(currentRoom.memory.countClaimer < 1 && Game.flags['Claim'] != undefined) spawnClaimer(capacity, spawn);
         // TODO: reimplement distance harvesters

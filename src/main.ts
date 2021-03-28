@@ -13,7 +13,7 @@ import { StatsManager} from "Stats";
 import { init_Rooms, print_Rooms, update_Rooms } from "Room";
 import { print_Stats, collect_Stats} from "Stats";
 import { run_CreepManager, creepAI_CreepManager } from "CreepManager";
-import { Colony, Run_Colony } from "Colony";
+import { Colony, Run_Colony, Run_Census, Setup_Goals, Manage_Construction} from "Colony";
 
 //A queue object holding the items which have been queue'd to complete.
 var queue: Queue = new Queue();
@@ -29,6 +29,10 @@ export var colonies: Colony[];
  * else means I should really get to work.
  */
 export const loop = ErrorMapper.wrapLoop(() => { //Keep this main line
+
+  //Proccess the requests from the last tick
+  queue.proccessRequests();
+
   //Check if we have any colonies. If we don't make one.
   if (colonies == undefined) {
     colonies = [];
@@ -36,15 +40,12 @@ export const loop = ErrorMapper.wrapLoop(() => { //Keep this main line
       colonies.push(new Colony(Game.rooms[r]));
     }
   }
-
-  //Proccess the requests from the last tick
-  queue.proccessRequests();
-
   //Generate a pixel if we can.
   // if(Game.cpu.bucket == 10000) Game.cpu.generatePixel(); //Game.cpu.generatePixel(); is not a command in private servers, uncomment when pushing to public
   //Things that should always be ran
   queue.queueAdd(new creepAI_CreepManager(), priority.HIGH);
   //Add running the colonies to the queue
+  // for(var i = 0; i < colonies.length; i++) queue.queueAdd(new Setup_Goals(colonies[i]), priority.HIGH);
   for(var i = 0; i < colonies.length; i++) queue.queueAdd(new Run_Colony(colonies[i]), priority.HIGH);
 
   //Add items that should always be run... but only if they can be
