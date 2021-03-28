@@ -3908,13 +3908,6 @@ class Colony {
     manageConstruction() {
         if (this.roomMatrix == undefined)
             this.calculateRoomMatrix();
-        if (this.roomMatrix != undefined)
-            for (var i = 0; i < 50; i++) {
-                var row = "";
-                for (var j = 0; j < 50; j++)
-                    row += this.roomMatrix[i][j] + " ";
-                console.log(row);
-            }
         //Do construction projects
         if (this.constructionStage == 0) {
             for (let s in Game.spawns) {
@@ -3955,10 +3948,12 @@ class Colony {
             this.roomMatrix.push(row);
         }
         this.reparameterizeRoomMatrix();
-        var i = 1;
-        while (this.distanceTransform(i) && i <= 20)
-            i++;
-        console.log(i);
+        console.log("Reparameterized");
+        this.printRoomMatrix();
+        while (this.distanceTransform())
+            continue;
+        console.log("Distance Transform");
+        this.printRoomMatrix();
     }
     reparameterizeRoomMatrix() {
         for (var y = 0; y < 50; y++)
@@ -3980,36 +3975,48 @@ class Colony {
      * Should only be called once the room matrix has been reparameterized.
      */
     distanceTransform(s = 1) {
-        if (s < 1)
+        var temp = this.roomMatrix;
+        if (s < 1 || s > 49)
+            throw null;
+        if (temp == undefined || this.roomMatrix == undefined)
             throw null;
         var e = 50 - s;
         var change = false;
         for (var y = s; y < e; y++)
             for (var x = s; x < e; x++) {
-                if (this.roomMatrix[y][x] == s - 1)
+                var current = this.roomMatrix[x][y];
+                if (current == 0)
                     continue;
-                else if (this.roomMatrix[y][x - 1] <= s - 1)
+                if (this.roomMatrix[x][y - 1] < current)
                     continue;
-                else if (this.roomMatrix[y + 1][x - 1] <= s - 1)
+                if (this.roomMatrix[x + 1][y - 1] < current)
                     continue;
-                else if (this.roomMatrix[y - 1][x - 1] <= s - 1)
+                if (this.roomMatrix[x - 1][y - 1] < current)
                     continue;
-                else if (this.roomMatrix[y - 1][x] <= s - 1)
+                if (this.roomMatrix[x - 1][y] < current)
                     continue;
-                else if (this.roomMatrix[y + 1][x] <= s - 1)
+                if (this.roomMatrix[x + 1][y] < current)
                     continue;
-                else if (this.roomMatrix[y][x + 1] <= s - 1)
+                if (this.roomMatrix[x][y + 1] < current)
                     continue;
-                else if (this.roomMatrix[y + 1][x + 1] <= s - 1)
+                if (this.roomMatrix[x + 1][y + 1] < current)
                     continue;
-                else if (this.roomMatrix[y - 1][x + 1] <= s - 1)
+                if (this.roomMatrix[x - 1][y + 1] < current)
                     continue;
-                else {
-                    change = true;
-                    this.roomMatrix[x][y]++;
-                }
+                change = true;
+                temp[x][y]++;
             }
+        this.roomMatrix = temp;
         return change;
+    }
+    printRoomMatrix() {
+        if (this.roomMatrix != undefined)
+            for (var i = 0; i < 50; i++) {
+                var row = "";
+                for (var j = 0; j < 50; j++)
+                    row += this.roomMatrix[i][j] + " ";
+                console.log(row);
+            }
     }
 }
 class Run_Colony extends template {
