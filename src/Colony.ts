@@ -22,6 +22,7 @@ export class Colony{
   spawnManager:SpawnManager;
   construction:ConstructionProject[];
   constructionStage:number;
+  roomMatrix?:number[][];
 
   //Constructors
   constructor(r:Room){
@@ -90,6 +91,12 @@ export class Colony{
     * This method handles the construction of projects in the colony.
     */
     manageConstruction(){
+      if (this.roomMatrix == undefined) this.calculateRoomMatrix();
+      if(this.roomMatrix != undefined) for(var i = 0; i < 50; i++){
+        var row:string = "";
+        for (var j = 0; j < 50; j++) row += this.roomMatrix[i][j] + " ";
+        console.log(row);
+      }
       //Do construction projects
       if(this.constructionStage == 0) {
         for(let s in Game.spawns){
@@ -117,6 +124,52 @@ export class Colony{
       var c:ConstructionSite[] | null = this.home.find(FIND_CONSTRUCTION_SITES);
       if(this.construction.length > 0 && c.length == 0) this.construction.pop()!.place();
       if(this.construction.length == 0 && c.length == 0) this.constructionStage++;
+    }
+    calculateRoomMatrix(){
+      var terrain:RoomTerrain = this.home.getTerrain();
+      this.roomMatrix = [];
+      for (var y = 0; y < 50; y++){
+        var row:number[] = [];
+        for (var x = 0; x < 50; x++) row.push(terrain.get(x,y));
+        this.roomMatrix.push(row);
+      }
+      this.reparameterizeRoomMatrix();
+      var i = 1;
+      while(this.distanceTransform(i) && i <= 20) i++;
+      console.log(i);
+    }
+    reparameterizeRoomMatrix(){
+      for (var y = 0; y < 50; y++) for (var x = 0; x < 50; x++){
+          switch(this.roomMatrix![y][x]){
+            case 2: this.roomMatrix![y][x] = 1; break;
+            case 0: this.roomMatrix![y][x] = 1; break;
+            case 1: this.roomMatrix![y][x] = 0; break;
+          }
+        }
+    }
+    /**
+     * Should only be called once the room matrix has been reparameterized.
+     */
+    distanceTransform(s:number = 1){
+      if(s < 1) throw null;
+      var e:number = 50-s;
+      var change:boolean = false;
+      for (var y = s; y < e; y++) for (var x = s; x < e; x++){
+          if(this.roomMatrix![y][x] == s-1) continue;
+          else if(this.roomMatrix![y][x - 1] <= s-1) continue;
+          else if(this.roomMatrix![y + 1][x - 1] <= s-1) continue;
+          else if(this.roomMatrix![y - 1][x - 1] <= s-1) continue;
+          else if(this.roomMatrix![y - 1][x] <= s-1) continue;
+          else if(this.roomMatrix![y + 1][x] <= s-1) continue;
+          else if(this.roomMatrix![y][x + 1] <= s-1) continue;
+          else if(this.roomMatrix![y + 1][x + 1] <= s-1) continue;
+          else if(this.roomMatrix![y - 1][x + 1] <= s-1) continue;
+          else {
+            change = true;
+            this.roomMatrix![x][y]++;
+          }
+        }
+      return change;
     }
 }
 
