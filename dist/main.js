@@ -3822,6 +3822,230 @@ function spawn(currentRoom) {
     }
 }
 
+class VisualsManager {
+    run(roomName, trans, flood) {
+        if (Game.flags["DistanceTransform"] != undefined)
+            this.distanceTransform(trans, roomName);
+        if (Game.flags["FloodFill"] != undefined)
+            this.floodFill(flood, roomName);
+    }
+    distanceTransform(trans, roomName) {
+        if (trans != undefined)
+            for (var i = 0; i < 50; i++) {
+                for (var j = 0; j < 50; j++) {
+                    switch (trans[i][j]) {
+                        case 0: break;
+                        case 1:
+                            new RoomVisual(roomName).circle(j, i, { fill: "#B71C1C", opacity: 80 });
+                            break;
+                        case 2:
+                            new RoomVisual(roomName).circle(j, i, { fill: "#880E4F", opacity: 80 });
+                            break;
+                        case 3:
+                            new RoomVisual(roomName).circle(j, i, { fill: "#4A148C", opacity: 80 });
+                            break;
+                        case 4:
+                            new RoomVisual(roomName).circle(j, i, { fill: "#311B92", opacity: 80 });
+                            break;
+                        case 5:
+                            new RoomVisual(roomName).circle(j, i, { fill: "#0D47A1", opacity: 80 });
+                            break;
+                        case 6:
+                            new RoomVisual(roomName).circle(j, i, { fill: "#01579B", opacity: 80 });
+                            break;
+                        case 7:
+                            new RoomVisual(roomName).circle(j, i, { fill: "#006064", opacity: 80 });
+                            break;
+                        case 8:
+                            new RoomVisual(roomName).circle(j, i, { fill: "#004D40", opacity: 80 });
+                            break;
+                        case 9:
+                            new RoomVisual(roomName).circle(j, i, { fill: "#1B5E20", opacity: 80 });
+                            break;
+                        case 10:
+                            new RoomVisual(roomName).circle(j, i, { fill: "#33691E", opacity: 80 });
+                            break;
+                        case 11:
+                            new RoomVisual(roomName).circle(j, i, { fill: "#827717", opacity: 80 });
+                            break;
+                        case 12:
+                            new RoomVisual(roomName).circle(j, i, { fill: "#F57F17", opacity: 80 });
+                            break;
+                        case 13:
+                            new RoomVisual(roomName).circle(j, i, { fill: "#FF6F00", opacity: 80 });
+                            break;
+                        case 14:
+                            new RoomVisual(roomName).circle(j, i, { fill: "#E65100", opacity: 80 });
+                            break;
+                        case 15:
+                            new RoomVisual(roomName).circle(j, i, { fill: "#BF360C", opacity: 80 });
+                            break;
+                    }
+                }
+            }
+    }
+    floodFill(flood, roomName) {
+        if (flood != undefined)
+            for (var i = 0; i < 50; i++) {
+                for (var j = 0; j < 50; j++) {
+                    switch (flood[i][j]) {
+                        case 0: break;
+                        case -1:
+                            new RoomVisual(roomName).circle(j, i, { fill: "#388E3C", opacity: 80 });
+                            break;
+                        case 1:
+                            new RoomVisual(roomName).circle(j, i, { fill: "#303F9F", opacity: 80 });
+                            break;
+                    }
+                }
+            }
+    }
+}
+
+/**
+ * The room planner has a number of nice algorithms and methods defined to help
+ * in the planning of rooms as a whole.
+ */
+class RoomPlanner {
+    constructor(r) {
+        this.distanceTransform = undefined;
+        this.room = r;
+    }
+    getDistanceTransform() {
+        return this.distanceTransform;
+    }
+    getFloodFill() {
+        return this.floodFill;
+    }
+    calculateRoomMatrix() {
+        var terrain = this.room.getTerrain();
+        this.roomMatrix = [];
+        for (var y = 0; y < 50; y++) {
+            var row = [];
+            for (var x = 0; x < 50; x++) {
+                if (terrain.get(x, y) == 1)
+                    row.push(0);
+                else
+                    row.push(1);
+            }
+            this.roomMatrix.push(row);
+        }
+    }
+    distanceTransformManager() {
+        if (this.roomMatrix == undefined) {
+            this.calculateRoomMatrix();
+            return 3;
+        }
+        else if (this.distanceTransform == undefined) {
+            this.distanceTransform = _.cloneDeep(this.roomMatrix);
+            return 2;
+        }
+        else if (this.distanceTransformStep())
+            return 1;
+        else
+            return 0;
+    }
+    distanceTransformStep() {
+        var temp = this.distanceTransform;
+        if (temp == undefined || this.distanceTransform == undefined)
+            throw null;
+        var change = false;
+        for (var y = 0; y < 50; y++)
+            for (var x = 0; x < 50; x++) {
+                var current = this.distanceTransform[x][y];
+                if (current == 0)
+                    continue;
+                if (x >= 48 || x <= 1 || y <= 1 || y >= 48) {
+                    this.distanceTransform[x][y] = 0;
+                    continue;
+                }
+                if (this.distanceTransform[x][y - 1] < current)
+                    continue;
+                if (this.distanceTransform[x + 1][y - 1] < current)
+                    continue;
+                if (this.distanceTransform[x - 1][y - 1] < current)
+                    continue;
+                if (this.distanceTransform[x - 1][y] < current)
+                    continue;
+                if (this.distanceTransform[x + 1][y] < current)
+                    continue;
+                if (this.distanceTransform[x][y + 1] < current)
+                    continue;
+                if (this.distanceTransform[x + 1][y + 1] < current)
+                    continue;
+                if (this.distanceTransform[x - 1][y + 1] < current)
+                    continue;
+                change = true;
+                temp[x][y]++;
+            }
+        this.distanceTransform = temp;
+        return change;
+    }
+    floodFillReset() { this.floodFill = undefined; }
+    floodFillManager(p) {
+        if (this.roomMatrix == undefined) {
+            this.calculateRoomMatrix();
+            return 5;
+        }
+        else if (this.floodFill == undefined) {
+            this.floodFill = _.cloneDeep(this.roomMatrix);
+            return 3;
+        }
+        else if (this.floodFill[p.y][p.x] != -1) {
+            this.floodFill[p.y][p.x] = -1;
+            return 2;
+        }
+        else if (this.floodFillStep())
+            return 1;
+        else
+            return 0;
+    }
+    floodFillStep() {
+        var temp = this.floodFill;
+        if (temp == undefined || this.floodFill == undefined)
+            throw null;
+        var change = false;
+        for (var y = 1; y < 49; y++)
+            for (var x = 1; x < 49; x++) {
+                var current = this.floodFill[x][y];
+                var infect = false;
+                if (current == 0 || current == -1)
+                    continue;
+                if (this.floodFill[x][y - 1] == -1)
+                    infect = true;
+                else if (this.floodFill[x + 1][y - 1] == -1)
+                    infect = true;
+                else if (this.floodFill[x - 1][y - 1] == -1)
+                    infect = true;
+                else if (this.floodFill[x - 1][y] == -1)
+                    infect = true;
+                else if (this.floodFill[x + 1][y] == -1)
+                    infect = true;
+                else if (this.floodFill[x][y + 1] == -1)
+                    infect = true;
+                else if (this.floodFill[x + 1][y + 1] == -1)
+                    infect = true;
+                else if (this.floodFill[x - 1][y + 1] == -1)
+                    infect = true;
+                if (infect) {
+                    var l = this.room.lookAt(y, x);
+                    var t = false;
+                    for (let i in l)
+                        if (l[i].type == LOOK_STRUCTURES) {
+                            t = true;
+                            break;
+                        }
+                    if (!t) {
+                        change = true;
+                        temp[x][y] = -1;
+                    }
+                }
+            }
+        this.roomMatrix = temp;
+        return change;
+    }
+}
+
 //Import tasks
 var p = {};
 /**
@@ -3842,6 +4066,7 @@ class Colony {
         this.home.memory.counts = p;
         this.construction = [];
         this.constructionStage = 0;
+        this.roomPlanner = new RoomPlanner(this.home);
     }
     //Methods
     run() {
@@ -3851,9 +4076,17 @@ class Colony {
         //If we're not done with construction make a request to run the manager
         if (this.constructionStage != 2)
             Queue.request(new Manage_Construction(this));
+        if (this.roomPlanner.getDistanceTransform() == undefined)
+            Queue.request(new Calculate_DistanceTransform(this));
+        if (Game.flags["Flood"] != undefined) {
+            if (Game.flags["Flood"].room.name == this.home.name)
+                Queue.request(new Calculate_FloodFill(this, Game.flags["Flood"].pos));
+        }
         this.checkGoals();
         //Run the spawn manger.
         spawn(this.home);
+        if (Game.flags["Visuals"] != undefined)
+            new VisualsManager().run(this.home.name, this.roomPlanner.getDistanceTransform(), this.roomPlanner.getFloodFill());
     }
     /**
      * This method runs a quick census of all the creeps and updates the memory in
@@ -3906,8 +4139,6 @@ class Colony {
      * This method handles the construction of projects in the colony.
      */
     manageConstruction() {
-        // if (this.roomMatrix == undefined) this.calculateRoomMatrix();
-        this.floodFill();
         //Do construction projects
         if (this.constructionStage == 0) {
             for (let s in Game.spawns) {
@@ -3937,169 +4168,6 @@ class Colony {
             this.construction.pop().place();
         if (this.construction.length == 0 && c.length == 0)
             this.constructionStage++;
-    }
-    calculateRoomMatrix() {
-        var terrain = this.home.getTerrain();
-        this.roomMatrix = [];
-        for (var y = 0; y < 50; y++) {
-            var row = [];
-            for (var x = 0; x < 50; x++)
-                row.push(terrain.get(x, y));
-            this.roomMatrix.push(row);
-        }
-        this.reparameterizeRoomMatrix();
-        while (this.distanceTransformStep())
-            continue;
-    }
-    reparameterizeRoomMatrix() {
-        for (var y = 0; y < 50; y++)
-            for (var x = 0; x < 50; x++) {
-                switch (this.roomMatrix[y][x]) {
-                    case 2:
-                        this.roomMatrix[y][x] = 1;
-                        break;
-                    case 0:
-                        this.roomMatrix[y][x] = 1;
-                        break;
-                    case 1:
-                        this.roomMatrix[y][x] = 0;
-                        break;
-                }
-            }
-    }
-    /**
-     * Should only be called once the room matrix has been reparameterized.
-     */
-    distanceTransformStep(s = 1) {
-        var temp = this.roomMatrix;
-        if (s < 1 || s > 49)
-            throw null;
-        if (temp == undefined || this.roomMatrix == undefined)
-            throw null;
-        var e = 50 - s;
-        var change = false;
-        for (var y = s; y < e; y++)
-            for (var x = s; x < e; x++) {
-                var current = this.roomMatrix[x][y];
-                if (current == 0)
-                    continue;
-                if (this.roomMatrix[x][y - 1] < current)
-                    continue;
-                if (this.roomMatrix[x + 1][y - 1] < current)
-                    continue;
-                if (this.roomMatrix[x - 1][y - 1] < current)
-                    continue;
-                if (this.roomMatrix[x - 1][y] < current)
-                    continue;
-                if (this.roomMatrix[x + 1][y] < current)
-                    continue;
-                if (this.roomMatrix[x][y + 1] < current)
-                    continue;
-                if (this.roomMatrix[x + 1][y + 1] < current)
-                    continue;
-                if (this.roomMatrix[x - 1][y + 1] < current)
-                    continue;
-                change = true;
-                temp[x][y]++;
-            }
-        this.roomMatrix = temp;
-        return change;
-    }
-    floodFill(i = 25, j = 25) {
-        var terrain = this.home.getTerrain();
-        this.floodMap = [];
-        for (var y = 0; y < 50; y++) {
-            var row = [];
-            for (var x = 0; x < 50; x++)
-                row.push(terrain.get(x, y));
-            this.floodMap.push(row);
-        }
-        for (var y = 0; y < 50; y++)
-            for (var x = 0; x < 50; x++) {
-                switch (this.floodMap[y][x]) {
-                    case 2:
-                        this.floodMap[y][x] = 1;
-                        break;
-                    case 0:
-                        this.floodMap[y][x] = 1;
-                        break;
-                    case 1:
-                        this.floodMap[y][x] = 0;
-                        break;
-                }
-            }
-        this.floodMap[i][j] = -1;
-        this.printFloodFill();
-        while (this.floodSimStep())
-            continue;
-        console.log("-----");
-        this.printFloodFill();
-    }
-    floodSimStep() {
-        var temp = this.floodMap;
-        if (temp == undefined || this.floodMap == undefined)
-            throw null;
-        var change = false;
-        for (var y = 1; y < 49; y++)
-            for (var x = 1; x < 49; x++) {
-                var current = this.floodMap[x][y];
-                var infect = false;
-                if (current == 0 || current == -1)
-                    continue;
-                if (this.floodMap[x][y - 1] == -1)
-                    infect = true;
-                else if (this.floodMap[x + 1][y - 1] == -1)
-                    infect = true;
-                else if (this.floodMap[x - 1][y - 1] == -1)
-                    infect = true;
-                else if (this.floodMap[x - 1][y] == -1)
-                    infect = true;
-                else if (this.floodMap[x + 1][y] == -1)
-                    infect = true;
-                else if (this.floodMap[x][y + 1] == -1)
-                    infect = true;
-                else if (this.floodMap[x + 1][y + 1] == -1)
-                    infect = true;
-                else if (this.floodMap[x - 1][y + 1] == -1)
-                    infect = true;
-                if (infect) {
-                    var l = this.home.lookAt(y, x);
-                    var t = false;
-                    for (let i in l)
-                        if (l[i].type == LOOK_STRUCTURES) {
-                            t = true;
-                            break;
-                        }
-                    if (!t) {
-                        change = true;
-                        temp[x][y] = -1;
-                    }
-                }
-            }
-        this.roomMatrix = temp;
-        return change;
-    }
-    printRoomMatrix() {
-        if (this.roomMatrix != undefined)
-            for (var i = 0; i < 50; i++) {
-                var row = "";
-                for (var j = 0; j < 50; j++)
-                    row += this.roomMatrix[i][j] + " ";
-                console.log(row);
-            }
-    }
-    printFloodFill() {
-        if (this.floodMap != undefined)
-            for (var i = 0; i < 50; i++) {
-                var row = "";
-                for (var j = 0; j < 50; j++) {
-                    if (this.floodMap[i][j] != -1)
-                        row += this.floodMap[i][j] + " ";
-                    else
-                        row += "i ";
-                }
-                console.log(row);
-            }
     }
 }
 class Run_Colony extends template {
@@ -4150,6 +4218,35 @@ class ConstructionProject {
         Game.rooms[this.pos.roomName].createConstructionSite(this.pos, this.type);
     }
 }
+class Calculate_DistanceTransform extends template {
+    //Constructor
+    constructor(c) {
+        super();
+        //Variables
+        this.name = "Calculate Distance-transform";
+        this.colony = c;
+    }
+    //Methods
+    run() {
+        if (this.colony.roomPlanner.distanceTransformManager() != 0)
+            Queue.request(new Calculate_DistanceTransform(this.colony));
+    }
+}
+class Calculate_FloodFill extends template {
+    //Constructor
+    constructor(c, p) {
+        super();
+        //Variables
+        this.name = "Calculate Flood Fill";
+        this.colony = c;
+        this.start = p;
+    }
+    //Methods
+    run() {
+        if (this.colony.roomPlanner.floodFillManager(this.start) != 0)
+            Queue.request(new Calculate_FloodFill(this.colony, this.start));
+    }
+}
 
 /**
  * This file is the int main() of my screeps program. This should be a fairly empty
@@ -4179,7 +4276,8 @@ const loop = ErrorMapper.wrapLoop(() => {
         }
     }
     //Generate a pixel if we can.
-    // if(Game.cpu.bucket == 10000) Game.cpu.generatePixel(); //Game.cpu.generatePixel(); is not a command in private servers, uncomment when pushing to public
+    if (Game.cpu.bucket == 10000)
+        Game.cpu.generatePixel(); //Game.cpu.generatePixel(); is not a command in private servers, uncomment when pushing to public
     //Things that should always be ran
     queue.queueAdd(new creepAI_CreepManager(), priority.HIGH);
     //Add running the colonies to the queue

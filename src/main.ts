@@ -41,7 +41,7 @@ export const loop = ErrorMapper.wrapLoop(() => { //Keep this main line
     }
   }
   //Generate a pixel if we can.
-  // if(Game.cpu.bucket == 10000) Game.cpu.generatePixel(); //Game.cpu.generatePixel(); is not a command in private servers, uncomment when pushing to public
+  if(Game.cpu.bucket == 10000) Game.cpu.generatePixel(); //Game.cpu.generatePixel(); is not a command in private servers, uncomment when pushing to public
   //Things that should always be ran
   queue.queueAdd(new creepAI_CreepManager(), priority.HIGH);
   //Add running the colonies to the queue

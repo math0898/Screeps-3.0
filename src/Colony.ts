@@ -6,6 +6,8 @@ import { struc_Room } from "Room";
 import { SpawnManager } from "SpawnManager";
 import { spawn } from "logic.spawn";
 import { Queue } from "Queue";
+import { VisualsManager } from "VisualsManager";
+import { RoomPlanner } from "RoomPlanner";
 interface IDictionary { [index: string]: number; }
 var p = {} as IDictionary;
 /**
@@ -22,9 +24,7 @@ export class Colony{
   spawnManager:SpawnManager;
   construction:ConstructionProject[];
   constructionStage:number;
-  roomMatrix?:number[][];
-  distanceTransform?:number[][];
-  floodMap?:number[][];
+  roomPlanner:RoomPlanner;
 
   //Constructors
   constructor(r:Room){
@@ -36,6 +36,7 @@ export class Colony{
     this.home.memory.counts = p;
     this.construction = [];
     this.constructionStage = 0;
+    this.roomPlanner = new RoomPlanner(this.home);
   }
 
   //Methods
@@ -44,9 +45,14 @@ export class Colony{
     if(Game.time % 100 == 0) Queue.request(new Run_Census(this));
     //If we're not done with construction make a request to run the manager
     if(this.constructionStage != 2) Queue.request(new Manage_Construction(this));
+    if (this.roomPlanner.getDistanceTransform() == undefined) Queue.request(new Calculate_DistanceTransform(this));
+    if (Game.flags["Flood"] != undefined){
+      if (Game.flags["Flood"].room!.name == this.home.name) Queue.request(new Calculate_FloodFill(this, Game.flags["Flood"].pos));
+    }
     this.checkGoals();
     //Run the spawn manger.
     spawn(this.home);
+    if (Game.flags["Visuals"] != undefined) new VisualsManager().run(this.home.name, this.roomPlanner.getDistanceTransform(), this.roomPlanner.getFloodFill());
   }
   /**
    * This method runs a quick census of all the creeps and updates the memory in
@@ -93,8 +99,6 @@ export class Colony{
     * This method handles the construction of projects in the colony.
     */
     manageConstruction(){
-      // if (this.roomMatrix == undefined) this.calculateRoomMatrix();
-      this.floodFill();
       //Do construction projects
       if(this.constructionStage == 0) {
         for(let s in Game.spawns){
@@ -122,119 +126,6 @@ export class Colony{
       var c:ConstructionSite[] | null = this.home.find(FIND_CONSTRUCTION_SITES);
       if(this.construction.length > 0 && c.length == 0) this.construction.pop()!.place();
       if(this.construction.length == 0 && c.length == 0) this.constructionStage++;
-    }
-    calculateRoomMatrix(){
-      var terrain:RoomTerrain = this.home.getTerrain();
-      this.roomMatrix = [];
-      for (var y = 0; y < 50; y++){
-        var row:number[] = [];
-        for (var x = 0; x < 50; x++) row.push(terrain.get(x,y));
-        this.roomMatrix.push(row);
-      }
-      this.reparameterizeRoomMatrix();
-      while(this.distanceTransformStep()) continue;
-    }
-    reparameterizeRoomMatrix(){
-      for (var y = 0; y < 50; y++) for (var x = 0; x < 50; x++){
-          switch(this.roomMatrix![y][x]){
-            case 2: this.roomMatrix![y][x] = 1; break;
-            case 0: this.roomMatrix![y][x] = 1; break;
-            case 1: this.roomMatrix![y][x] = 0; break;
-          }
-        }
-    }
-    /**
-     * Should only be called once the room matrix has been reparameterized.
-     */
-    distanceTransformStep(s:number = 1){
-      var temp:number[][] | undefined = this.roomMatrix;
-      if(s < 1 || s > 49) throw null;
-      if (temp == undefined || this.roomMatrix == undefined) throw null;
-      var e:number = 50-s;
-      var change:boolean = false;
-      for (var y = s; y < e; y++) for (var x = s; x < e; x++){
-        var current:number = this.roomMatrix[x][y];
-        if(current == 0) continue;
-        if(this.roomMatrix[x    ][y - 1] < current) continue;
-        if(this.roomMatrix[x + 1][y - 1] < current) continue;
-        if(this.roomMatrix[x - 1][y - 1] < current) continue;
-        if(this.roomMatrix[x - 1][y    ] < current) continue;
-        if(this.roomMatrix[x + 1][y    ] < current) continue;
-        if(this.roomMatrix[x    ][y + 1] < current) continue;
-        if(this.roomMatrix[x + 1][y + 1] < current) continue;
-        if(this.roomMatrix[x - 1][y + 1] < current) continue;
-        change = true;
-        temp[x][y]++;
-      }
-      this.roomMatrix = temp;
-      return change;
-    }
-    floodFill(i:number = 25, j:number = 25){
-      var terrain:RoomTerrain = this.home.getTerrain();
-      this.floodMap = [];
-      for (var y = 0; y < 50; y++){
-        var row:number[] = [];
-        for (var x = 0; x < 50; x++) row.push(terrain.get(x,y));
-        this.floodMap.push(row);
-      }
-      for (var y = 0; y < 50; y++) for (var x = 0; x < 50; x++){
-          switch(this.floodMap[y][x]){
-            case 2: this.floodMap[y][x] = 1; break;
-            case 0: this.floodMap[y][x] = 1; break;
-            case 1: this.floodMap[y][x] = 0; break;
-          }
-        }
-      this.floodMap[i][j] = -1;
-      this.printFloodFill();
-      while(this.floodSimStep()) continue;
-      console.log("-----");
-      this.printFloodFill();
-    }
-    floodSimStep(){
-      var temp:number[][] | undefined = this.floodMap;
-      if (temp == undefined || this.floodMap == undefined) throw null;
-      var change:boolean = false;
-      for (var y = 1; y < 49; y++) for (var x = 1; x < 49; x++){
-        var current:number = this.floodMap[x][y];
-        var infect:boolean = false;
-        if(current == 0 || current == -1) continue;
-        if(this.floodMap[x    ][y - 1] == -1) infect = true;
-        else if(this.floodMap[x + 1][y - 1] == -1) infect = true;
-        else if(this.floodMap[x - 1][y - 1] == -1) infect = true;
-        else if(this.floodMap[x - 1][y    ] == -1) infect = true;
-        else if(this.floodMap[x + 1][y    ] == -1) infect = true;
-        else if(this.floodMap[x    ][y + 1] == -1) infect = true;
-        else if(this.floodMap[x + 1][y + 1] == -1) infect = true;
-        else if(this.floodMap[x - 1][y + 1] == -1) infect = true;
-        if(infect){
-          var l = this.home.lookAt(y,x);
-          var t = false;
-          for (let i in l) if(l[i].type == LOOK_STRUCTURES) {t = true; break;}
-          if (!t){
-            change = true;
-            temp[x][y] = -1;
-          }
-        }
-      }
-      this.roomMatrix = temp;
-      return change;
-    }
-    printRoomMatrix(){
-      if(this.roomMatrix != undefined) for(var i = 0; i < 50; i++){
-        var row:string = "";
-        for (var j = 0; j < 50; j++) row += this.roomMatrix[i][j] + " ";
-        console.log(row);
-      }
-    }
-    printFloodFill(){
-      if(this.floodMap != undefined) for(var i = 0; i < 50; i++){
-        var row:string = "";
-        for (var j = 0; j < 50; j++) {
-          if(this.floodMap[i][j] != -1) row += this.floodMap[i][j] + " ";
-          else row += "i ";
-        }
-        console.log(row);
-      }
     }
 }
 
@@ -316,5 +207,41 @@ class ConstructionProject {
 
   place(){
     Game.rooms[this.pos.roomName].createConstructionSite(this.pos, this.type)
+  }
+}
+
+export class Calculate_DistanceTransform extends template implements task {
+  //Variables
+  name:string = "Calculate Distance-transform";
+  colony:Colony;
+
+  //Constructor
+  constructor(c:Colony){
+    super();
+    this.colony = c;
+  }
+
+  //Methods
+  run(){
+    if (this.colony.roomPlanner.distanceTransformManager() != 0) Queue.request(new Calculate_DistanceTransform(this.colony));
+  }
+}
+
+export class Calculate_FloodFill extends template implements task {
+  //Variables
+  name:string = "Calculate Flood Fill";
+  colony:Colony;
+  start:RoomPosition;
+
+  //Constructor
+  constructor(c:Colony, p:RoomPosition){
+    super();
+    this.colony = c;
+    this.start = p;
+  }
+
+  //Methods
+  run(){
+    if (this.colony.roomPlanner.floodFillManager(this.start) != 0) Queue.request(new Calculate_FloodFill(this.colony, this.start));
   }
 }
