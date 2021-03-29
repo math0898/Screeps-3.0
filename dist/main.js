@@ -3906,8 +3906,8 @@ class Colony {
      * This method handles the construction of projects in the colony.
      */
     manageConstruction() {
-        if (this.roomMatrix == undefined)
-            this.calculateRoomMatrix();
+        // if (this.roomMatrix == undefined) this.calculateRoomMatrix();
+        this.floodFill();
         //Do construction projects
         if (this.constructionStage == 0) {
             for (let s in Game.spawns) {
@@ -3948,12 +3948,8 @@ class Colony {
             this.roomMatrix.push(row);
         }
         this.reparameterizeRoomMatrix();
-        console.log("Reparameterized");
-        this.printRoomMatrix();
-        while (this.distanceTransform())
+        while (this.distanceTransformStep())
             continue;
-        console.log("Distance Transform");
-        this.printRoomMatrix();
     }
     reparameterizeRoomMatrix() {
         for (var y = 0; y < 50; y++)
@@ -3974,7 +3970,7 @@ class Colony {
     /**
      * Should only be called once the room matrix has been reparameterized.
      */
-    distanceTransform(s = 1) {
+    distanceTransformStep(s = 1) {
         var temp = this.roomMatrix;
         if (s < 1 || s > 49)
             throw null;
@@ -4009,12 +4005,99 @@ class Colony {
         this.roomMatrix = temp;
         return change;
     }
+    floodFill(i = 25, j = 25) {
+        var terrain = this.home.getTerrain();
+        this.floodMap = [];
+        for (var y = 0; y < 50; y++) {
+            var row = [];
+            for (var x = 0; x < 50; x++)
+                row.push(terrain.get(x, y));
+            this.floodMap.push(row);
+        }
+        for (var y = 0; y < 50; y++)
+            for (var x = 0; x < 50; x++) {
+                switch (this.floodMap[y][x]) {
+                    case 2:
+                        this.floodMap[y][x] = 1;
+                        break;
+                    case 0:
+                        this.floodMap[y][x] = 1;
+                        break;
+                    case 1:
+                        this.floodMap[y][x] = 0;
+                        break;
+                }
+            }
+        this.floodMap[i][j] = -1;
+        this.printFloodFill();
+        while (this.floodSimStep())
+            continue;
+        console.log("-----");
+        this.printFloodFill();
+    }
+    floodSimStep() {
+        var temp = this.floodMap;
+        if (temp == undefined || this.floodMap == undefined)
+            throw null;
+        var change = false;
+        for (var y = 1; y < 49; y++)
+            for (var x = 1; x < 49; x++) {
+                var current = this.floodMap[x][y];
+                var infect = false;
+                if (current == 0 || current == -1)
+                    continue;
+                if (this.floodMap[x][y - 1] == -1)
+                    infect = true;
+                else if (this.floodMap[x + 1][y - 1] == -1)
+                    infect = true;
+                else if (this.floodMap[x - 1][y - 1] == -1)
+                    infect = true;
+                else if (this.floodMap[x - 1][y] == -1)
+                    infect = true;
+                else if (this.floodMap[x + 1][y] == -1)
+                    infect = true;
+                else if (this.floodMap[x][y + 1] == -1)
+                    infect = true;
+                else if (this.floodMap[x + 1][y + 1] == -1)
+                    infect = true;
+                else if (this.floodMap[x - 1][y + 1] == -1)
+                    infect = true;
+                if (infect) {
+                    var l = this.home.lookAt(y, x);
+                    var t = false;
+                    for (let i in l)
+                        if (l[i].type == LOOK_STRUCTURES) {
+                            t = true;
+                            break;
+                        }
+                    if (!t) {
+                        change = true;
+                        temp[x][y] = -1;
+                    }
+                }
+            }
+        this.roomMatrix = temp;
+        return change;
+    }
     printRoomMatrix() {
         if (this.roomMatrix != undefined)
             for (var i = 0; i < 50; i++) {
                 var row = "";
                 for (var j = 0; j < 50; j++)
                     row += this.roomMatrix[i][j] + " ";
+                console.log(row);
+            }
+    }
+    printFloodFill() {
+        if (this.floodMap != undefined)
+            for (var i = 0; i < 50; i++) {
+                var row = "";
+                for (var j = 0; j < 50; j++) {
+                    if (this.floodMap[i][j] != -1)
+                        row += this.floodMap[i][j] + " ";
+                    else
+                        row += "i ";
+                }
                 console.log(row);
             }
     }

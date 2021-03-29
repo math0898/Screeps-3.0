@@ -23,6 +23,8 @@ export class Colony{
   construction:ConstructionProject[];
   constructionStage:number;
   roomMatrix?:number[][];
+  distanceTransform?:number[][];
+  floodMap?:number[][];
 
   //Constructors
   constructor(r:Room){
@@ -91,7 +93,8 @@ export class Colony{
     * This method handles the construction of projects in the colony.
     */
     manageConstruction(){
-      if (this.roomMatrix == undefined) this.calculateRoomMatrix();
+      // if (this.roomMatrix == undefined) this.calculateRoomMatrix();
+      this.floodFill();
       //Do construction projects
       if(this.constructionStage == 0) {
         for(let s in Game.spawns){
@@ -129,11 +132,7 @@ export class Colony{
         this.roomMatrix.push(row);
       }
       this.reparameterizeRoomMatrix();
-      console.log("Reparameterized");
-      this.printRoomMatrix();
-      while(this.distanceTransform()) continue;
-      console.log("Distance Transform");
-      this.printRoomMatrix();
+      while(this.distanceTransformStep()) continue;
     }
     reparameterizeRoomMatrix(){
       for (var y = 0; y < 50; y++) for (var x = 0; x < 50; x++){
@@ -147,7 +146,7 @@ export class Colony{
     /**
      * Should only be called once the room matrix has been reparameterized.
      */
-    distanceTransform(s:number = 1){
+    distanceTransformStep(s:number = 1){
       var temp:number[][] | undefined = this.roomMatrix;
       if(s < 1 || s > 49) throw null;
       if (temp == undefined || this.roomMatrix == undefined) throw null;
@@ -170,10 +169,70 @@ export class Colony{
       this.roomMatrix = temp;
       return change;
     }
+    floodFill(i:number = 25, j:number = 25){
+      var terrain:RoomTerrain = this.home.getTerrain();
+      this.floodMap = [];
+      for (var y = 0; y < 50; y++){
+        var row:number[] = [];
+        for (var x = 0; x < 50; x++) row.push(terrain.get(x,y));
+        this.floodMap.push(row);
+      }
+      for (var y = 0; y < 50; y++) for (var x = 0; x < 50; x++){
+          switch(this.floodMap[y][x]){
+            case 2: this.floodMap[y][x] = 1; break;
+            case 0: this.floodMap[y][x] = 1; break;
+            case 1: this.floodMap[y][x] = 0; break;
+          }
+        }
+      this.floodMap[i][j] = -1;
+      this.printFloodFill();
+      while(this.floodSimStep()) continue;
+      console.log("-----");
+      this.printFloodFill();
+    }
+    floodSimStep(){
+      var temp:number[][] | undefined = this.floodMap;
+      if (temp == undefined || this.floodMap == undefined) throw null;
+      var change:boolean = false;
+      for (var y = 1; y < 49; y++) for (var x = 1; x < 49; x++){
+        var current:number = this.floodMap[x][y];
+        var infect:boolean = false;
+        if(current == 0 || current == -1) continue;
+        if(this.floodMap[x    ][y - 1] == -1) infect = true;
+        else if(this.floodMap[x + 1][y - 1] == -1) infect = true;
+        else if(this.floodMap[x - 1][y - 1] == -1) infect = true;
+        else if(this.floodMap[x - 1][y    ] == -1) infect = true;
+        else if(this.floodMap[x + 1][y    ] == -1) infect = true;
+        else if(this.floodMap[x    ][y + 1] == -1) infect = true;
+        else if(this.floodMap[x + 1][y + 1] == -1) infect = true;
+        else if(this.floodMap[x - 1][y + 1] == -1) infect = true;
+        if(infect){
+          var l = this.home.lookAt(y,x);
+          var t = false;
+          for (let i in l) if(l[i].type == LOOK_STRUCTURES) {t = true; break;}
+          if (!t){
+            change = true;
+            temp[x][y] = -1;
+          }
+        }
+      }
+      this.roomMatrix = temp;
+      return change;
+    }
     printRoomMatrix(){
       if(this.roomMatrix != undefined) for(var i = 0; i < 50; i++){
         var row:string = "";
         for (var j = 0; j < 50; j++) row += this.roomMatrix[i][j] + " ";
+        console.log(row);
+      }
+    }
+    printFloodFill(){
+      if(this.floodMap != undefined) for(var i = 0; i < 50; i++){
+        var row:string = "";
+        for (var j = 0; j < 50; j++) {
+          if(this.floodMap[i][j] != -1) row += this.floodMap[i][j] + " ";
+          else row += "i ";
+        }
         console.log(row);
       }
     }
