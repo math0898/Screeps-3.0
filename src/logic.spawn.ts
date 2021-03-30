@@ -159,7 +159,6 @@ export function spawn(currentRoom:Room){
     for(var s in Game.spawns){ //TODO implement spawns into room.memory so this is O(c), current O(s)
       //Why is this harder than it needs to be?
       var spawn:StructureSpawn = Game.spawns[s];
-      var hostiles = (spawn.pos.findClosestByRange(FIND_HOSTILE_CREEPS) != undefined);
       //Is the spawn in the room we want?
       if (currentRoom.name == spawn.room.name){
         if(currentRoom.memory.counts.Miner == undefined) {
@@ -168,10 +167,8 @@ export function spawn(currentRoom:Room){
           currentRoom.memory.counts.Jumpstart = 0;
           currentRoom.memory.counts.Worker =0;
         }
-        //If there are hostiles spawn a defender
-        if(hostiles) spawnDefender(capacity, spawn);
         //Check if a harvester creep needs to be spawned, this includes recovery if all creeps die
-        else if(currentRoom.memory.counts.Worker < 1) spawnHarvester(capacity, spawn);
+        if(currentRoom.memory.counts.Worker < 1) spawnHarvester(capacity, spawn);
         //Check if a carrier creep needs to be spawned, 2 per miner
         // else if(currentRoom.memory.counts.Carrier < currentRoom.memory.counts.Miner * 2) spawnCarrier(capacity, spawn);
         //Check if a miner creep needs to be spawned, 1 per source

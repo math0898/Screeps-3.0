@@ -30,6 +30,9 @@ export var colonies: Colony[];
  */
 export const loop = ErrorMapper.wrapLoop(() => { //Keep this main line
 
+  //Purge duplicate requests on ocasion
+  Queue.purgeDuplicateRequests();
+
   //Proccess the requests from the last tick
   queue.proccessRequests();
 
@@ -41,7 +44,7 @@ export const loop = ErrorMapper.wrapLoop(() => { //Keep this main line
     }
   }
   //Generate a pixel if we can.
-  if(Game.cpu.bucket == 10000) Game.cpu.generatePixel(); //Game.cpu.generatePixel(); is not a command in private servers, uncomment when pushing to public
+  // if(Game.cpu.bucket == 10000) Game.cpu.generatePixel(); //Game.cpu.generatePixel(); is not a command in private servers, uncomment when pushing to public
   //Things that should always be ran
   queue.queueAdd(new creepAI_CreepManager(), priority.HIGH);
   //Add running the colonies to the queue
@@ -57,9 +60,6 @@ export const loop = ErrorMapper.wrapLoop(() => { //Keep this main line
   if (rooms == undefined) rooms = (new init_Rooms(rooms).run());
 
   //Telemetry stuffs
-  queue.queueAdd(new print_Rooms(rooms));
-  queue.queueAdd(new print_Stats());
-
   queue.printQueue();
   queue.runQueue();
 });

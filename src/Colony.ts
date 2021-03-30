@@ -41,18 +41,36 @@ export class Colony{
 
   //Methods
   run(){
+    this.home = Game.rooms[this.home.name];
+    var h = this.home.find(FIND_HOSTILE_CREEPS);
+    if (h != undefined && h.length > 0) {
+      var t = this.home.find(FIND_MY_STRUCTURES, {filter: (f) => f.structureType == STRUCTURE_TOWER});
+      for (var i = 0; i < t.length; i++){
+        // This is legal because of the filter we used.
+        // @ts-ignore
+        var tower:StructureTower = t[i];
+        tower.attack(h[0]);
+      }
+    }
     //Request a census every 100 ticks
     if(Game.time % 100 == 0) Queue.request(new Run_Census(this));
     //If we're not done with construction make a request to run the manager
     if(this.constructionStage != 2) Queue.request(new Manage_Construction(this));
     if (this.roomPlanner.getDistanceTransform() == undefined) Queue.request(new Calculate_DistanceTransform(this));
+    // if (this.roomPlanner.getMinCut() == undefined) {
+    //   var pos:RoomPosition[] = [];
+    //   var t = this.home.find(FIND_MY_STRUCTURES);
+    //   for (var i = 0; i < t.length; i ++) pos.push(t[i].pos);
+    //   pos.push(this.home.controller!.pos);
+    //   Queue.request(new Calculate_MinCut(this, pos));
+    // }
     if (Game.flags["Flood"] != undefined){
       if (Game.flags["Flood"].room!.name == this.home.name) Queue.request(new Calculate_FloodFill(this, Game.flags["Flood"].pos));
     }
     this.checkGoals();
     //Run the spawn manger.
     spawn(this.home);
-    if (Game.flags["Visuals"] != undefined) new VisualsManager().run(this.home.name, this.roomPlanner.getDistanceTransform(), this.roomPlanner.getFloodFill());
+    if (Game.flags["Visuals"] != undefined) new VisualsManager().run(this.home.name, this.roomPlanner.getDistanceTransform(), this.roomPlanner.getFloodFill(), this.roomPlanner.getMinCut());
   }
   /**
    * This method runs a quick census of all the creeps and updates the memory in
@@ -243,5 +261,24 @@ export class Calculate_FloodFill extends template implements task {
   //Methods
   run(){
     if (this.colony.roomPlanner.floodFillManager(this.start) != 0) Queue.request(new Calculate_FloodFill(this.colony, this.start));
+  }
+}
+
+export class Calculate_MinCut extends template implements task {
+  //Variables
+  name:string = "Calculate Min Cut";
+  colony:Colony;
+  protect:RoomPosition[] | undefined;
+
+  //Constructor
+  constructor(c:Colony, p:RoomPosition[] | undefined) {
+    super();
+    this.colony = c;
+    this.protect = p;
+  }
+
+  //Methods
+  run() {
+    if (this.colony.roomPlanner.minCutManager(this.protect) != 0) Queue.request(new Calculate_MinCut(this.colony, undefined));
   }
 }

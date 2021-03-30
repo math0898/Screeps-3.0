@@ -2526,6 +2526,30 @@ class Queue {
         //Clear the requests array
         Queue.requests = []; //O(2 + 6n)
     }
+    /**
+     * prugeDuplicateRequests removes all requests which are duplicates. This
+     * prevents certain algorithms from running multiple times per tick such as
+     * distanceTransform.
+     * Runtime: O(2n) where n is the length of the requests array
+     */
+    static purgeDuplicateRequests() {
+        //An array of request names
+        var have = [];
+        //A temporary array to store requests once they've been confirmed unique
+        var temp = [];
+        //Iterate through the requests and check if they've been in the array
+        for (var i = 0; i < Queue.requests.length; i++) {
+            //Check if its in the array
+            if (have.indexOf(Queue.requests[i].getTask().getName()) > -1)
+                continue;
+            //If its not in the array add it
+            have.push(Queue.requests[i].getTask().getName());
+            //Add it to the temp array
+            temp.push(Queue.requests[i]);
+        }
+        //Update the requests array with the purged copy
+        Queue.requests = temp;
+    }
 }
 /**
  * By default requests are empty but requests can be added by other tasks and
@@ -2665,25 +2689,6 @@ class collect_Stats extends template {
     run() {
         //Collect the stats... its really just that easy.
         StatsManager.collectStats();
-    }
-}
-/**
- * The print_Stats task prints all the stats collected so far from the stats
- * managers and prints it into the console.
- * Runtime O(c) ---> Runs in constant time
- */
-class print_Stats extends template {
-    //Constructors
-    constructor() {
-        super();
-        //Variables
-        //The name of the task
-        this.name = "Print Stats";
-    }
-    //Real methods
-    run() {
-        //Print the stats... also really just that easy.
-        StatsManager.print();
     }
 }
 
@@ -2901,41 +2906,6 @@ class update_Rooms extends template {
         //Iterate down the array and call update room.
         for (var i = 0; i < this.rooms.length; i++)
             this.rooms[i].updateRoom(); //O(r * f)
-    }
-}
-/**
- * The print_Rooms task prints all the givens in the array given at construction.
- * Runtime: O(r) ---> a constant number of tasks is run for each room.
- */
-class print_Rooms extends template {
-    //constructors
-    /**
-     * Makes a print_Rooms task which prints the rooms in the given array.
-     * @param rooms The room array to be printed.
-     */
-    constructor(rooms) {
-        //Call super
-        super();
-        //Variables
-        //The name of the task
-        this.name = "Print Rooms";
-        //Set localized counter part
-        this.rooms = rooms;
-    }
-    //Real methods
-    /**
-     * Prints all the rooms in the given array to the console.
-     * Runtime: O(r) ---> r is the number of rooms
-     */
-    run() {
-        //Check if rooms is undefined
-        if (this.rooms == undefined) {
-            console.log("Could not print rooms");
-            return;
-        }
-        //Iterate down the array and call each rooms print
-        for (var i = 0; i < this.rooms.length; i++)
-            this.rooms[i].print(); //O(r * c)
     }
 }
 
@@ -3599,41 +3569,6 @@ class SpawnQueue {
  * @param capacity The max energy the creep can use
  * @param spawn The spawn where the creep will be produced
  */
-function spawnDefender(capacity, spawn) {
-    //The poor mans defender
-    if (capacity < 380) {
-        //Temporaily stores how much energy we've spent on our creep
-        var spent = 130; //Starts at 130 since everything has 1 move (50) and 1 attack (80) parts
-        //No matter how much energy we have the carrier starts with 2 parts
-        var body = [MOVE, ATTACK];
-        //Add more parts so as not to exceed our energy budget
-        while (spent + 130 <= capacity) {
-            body.push(MOVE);
-            body.push(ATTACK);
-            spent += 130;
-        }
-        //Budget defender
-    }
-    else if (capacity < 430)
-        var body = [MOVE, ATTACK, HEAL];
-    //Deluxe defender
-    else {
-        //Temporaily stores how much energy we've spent on our creep
-        var spent = 430; //Starts at 430 since everything has 2 move (100), 1 attack (80), and 1 heal (250)
-        //No matter how much energy we have the defender starts with 4 parts
-        var body = [MOVE, MOVE, ATTACK, HEAL];
-        //Add more parts so as not to exceed our energy budget
-        while (spent + 130 <= capacity) {
-            body.push(MOVE);
-            body.push(ATTACK);
-            spent += 130;
-        }
-    }
-    //Temp name storing
-    var name = '[' + spawn.room.name + '] Defender ' + Game.time;
-    //Spawn the defender
-    spawn.spawnCreep(body, name, { memory: { room: spawn.room.name, role: 'Defender' } });
-}
 /**
  * Spawns a claimer creep at the given spawn and at the level given.
  * O(c) --> runs in constant time
@@ -3786,7 +3721,6 @@ function spawn(currentRoom) {
     for (var s in Game.spawns) { //TODO implement spawns into room.memory so this is O(c), current O(s)
         //Why is this harder than it needs to be?
         var spawn = Game.spawns[s];
-        var hostiles = (spawn.pos.findClosestByRange(FIND_HOSTILE_CREEPS) != undefined);
         //Is the spawn in the room we want?
         if (currentRoom.name == spawn.room.name) {
             if (currentRoom.memory.counts.Miner == undefined) {
@@ -3795,11 +3729,8 @@ function spawn(currentRoom) {
                 currentRoom.memory.counts.Jumpstart = 0;
                 currentRoom.memory.counts.Worker = 0;
             }
-            //If there are hostiles spawn a defender
-            if (hostiles)
-                spawnDefender(capacity, spawn);
             //Check if a harvester creep needs to be spawned, this includes recovery if all creeps die
-            else if (currentRoom.memory.counts.Worker < 1)
+            if (currentRoom.memory.counts.Worker < 1)
                 spawnHarvester(capacity, spawn);
             //Check if a carrier creep needs to be spawned, 2 per miner
             // else if(currentRoom.memory.counts.Carrier < currentRoom.memory.counts.Miner * 2) spawnCarrier(capacity, spawn);
@@ -3823,17 +3754,22 @@ function spawn(currentRoom) {
 }
 
 class VisualsManager {
-    run(roomName, trans, flood) {
+    run(roomName, trans, flood, minCut) {
         if (Game.flags["DistanceTransform"] != undefined)
             this.distanceTransform(trans, roomName);
         if (Game.flags["FloodFill"] != undefined)
             this.floodFill(flood, roomName);
+        if (Game.flags["MinCut"] != undefined)
+            this.minCut(minCut, roomName);
     }
     distanceTransform(trans, roomName) {
         if (trans != undefined)
             for (var i = 0; i < 50; i++) {
                 for (var j = 0; j < 50; j++) {
                     switch (trans[i][j]) {
+                        case -1:
+                            new RoomVisual(roomName).circle(j, i, { fill: "#607D8B", opacity: 80 });
+                            break;
                         case 0: break;
                         case 1:
                             new RoomVisual(roomName).circle(j, i, { fill: "#B71C1C", opacity: 80 });
@@ -3886,7 +3822,7 @@ class VisualsManager {
     }
     floodFill(flood, roomName) {
         if (flood != undefined)
-            for (var i = 0; i < 50; i++) {
+            for (var i = 0; i < 50; i++)
                 for (var j = 0; j < 50; j++) {
                     switch (flood[i][j]) {
                         case 0: break;
@@ -3898,7 +3834,20 @@ class VisualsManager {
                             break;
                     }
                 }
-            }
+    }
+    minCut(minCut, roomName) {
+        if (minCut != undefined)
+            for (var i = 0; i < 50; i++)
+                for (var j = 0; j < 50; j++) {
+                    switch (minCut[i][j]) {
+                        case 2:
+                            new RoomVisual(roomName).circle(j, i, { fill: "#004D40", opacity: 80 });
+                            break;
+                        case 3:
+                            new RoomVisual(roomName).circle(j, i, { fill: "#558B2F", opacity: 80 });
+                            break;
+                    }
+                }
     }
 }
 
@@ -3909,6 +3858,15 @@ class VisualsManager {
 class RoomPlanner {
     constructor(r) {
         this.distanceTransform = undefined;
+        /**
+         * Holds the result and steps of the minCut algorithm.
+         */
+        this.minCut = undefined;
+        /**
+         * Positions that the mincut algorithm takes into consideration to protect.
+         * This array cannot be empty.
+         */
+        this.minCutProtect = undefined;
         this.room = r;
     }
     getDistanceTransform() {
@@ -3916,6 +3874,9 @@ class RoomPlanner {
     }
     getFloodFill() {
         return this.floodFill;
+    }
+    getMinCut() {
+        return this.minCut;
     }
     calculateRoomMatrix() {
         var terrain = this.room.getTerrain();
@@ -3931,55 +3892,90 @@ class RoomPlanner {
             this.roomMatrix.push(row);
         }
     }
+    setupDistanceTransform() {
+        this.distanceTransform = _.cloneDeep(this.roomMatrix);
+        if (this.distanceTransform != undefined)
+            for (var y = 0; y < 50; y++)
+                for (var x = 0; x < 50; x++) {
+                    if (x > 47 || x < 2 || y > 47 || y < 2)
+                        this.distanceTransform[y][x] = 0;
+                    else if (this.distanceTransform[y][x] == 1)
+                        this.distanceTransform[y][x] = -1;
+                }
+    }
     distanceTransformManager() {
         if (this.roomMatrix == undefined) {
             this.calculateRoomMatrix();
             return 3;
         }
         else if (this.distanceTransform == undefined) {
-            this.distanceTransform = _.cloneDeep(this.roomMatrix);
+            this.setupDistanceTransform();
             return 2;
         }
-        else if (this.distanceTransformStep())
+        else if (this.distanceTransformAlgorithm())
             return 1;
         else
             return 0;
     }
-    distanceTransformStep() {
-        var temp = this.distanceTransform;
-        if (temp == undefined || this.distanceTransform == undefined)
-            throw null;
-        var change = false;
+    /**
+     * Calculates the distance for the first (-1) value it finds in the
+     * distanceTransform array. This implementation has far fewer checks than the
+     * iterative solution I've used in the past which would preform 8 * 625. This
+     * one preforms (<=) 2 * 625 checks. Once for finding the cell and secondly to
+     * calculate its distance.
+     */
+    distanceTransformAlgorithm() {
+        //Check if distanceTransform is defined... it should be .-.
+        if (this.distanceTransform == undefined)
+            throw "Distance Transform storage matrix is not defined";
+        //Variable to determine if we're done or not
+        var notDone = false;
+        //Iterate through elements until one is -1
         for (var y = 0; y < 50; y++)
-            for (var x = 0; x < 50; x++) {
-                var current = this.distanceTransform[x][y];
-                if (current == 0)
-                    continue;
-                if (x >= 48 || x <= 1 || y <= 1 || y >= 48) {
-                    this.distanceTransform[x][y] = 0;
-                    continue;
+            for (var x = 0; x < 50; x++)
+                if (this.distanceTransform[y][x] == -1) {
+                    //We've found an item that needs calculated so we can say we're not done
+                    notDone = true;
+                    //The starting delta to check for any walls
+                    var delta = 0;
+                    //A boolean to determine exit
+                    var exit = false;
+                    //A nice infinite loop we'll break from in a bit once exit conditions are met
+                    while (!exit) {
+                        //Increase delta
+                        delta++;
+                        //Set our dx to delta
+                        var dx = delta;
+                        //Iterate through y's looking for a wall
+                        for (var dy = -delta; dy <= delta; dy++)
+                            if (this.distanceTransform[y + dy][x + dx] == 0)
+                                exit = true;
+                        //Same for negative dx
+                        dx = -delta;
+                        //Iterate through y's looking for a wall
+                        for (var dy = -delta; dy <= delta; dy++)
+                            if (this.distanceTransform[y + dy][x + dx] == 0)
+                                exit = true;
+                        //Set our dy to delta
+                        var dy = delta;
+                        //Iterate through x's looking for a wall
+                        for (var dx = -delta; dx <= delta; dx++)
+                            if (this.distanceTransform[y + dy][x + dx] == 0)
+                                exit = true;
+                        //Same for negative dy
+                        dy = -delta;
+                        //Iterate through x's looking for a wall
+                        for (var dx = -delta; dx <= delta; dx++)
+                            if (this.distanceTransform[y + dy][x + dx] == 0)
+                                exit = true;
+                    }
+                    //Set our value to how far we got
+                    this.distanceTransform[y][x] = delta;
+                    //We don't want to calculate more than one per round since that can get expensive so we return what we got
+                    return notDone;
                 }
-                if (this.distanceTransform[x][y - 1] < current)
-                    continue;
-                if (this.distanceTransform[x + 1][y - 1] < current)
-                    continue;
-                if (this.distanceTransform[x - 1][y - 1] < current)
-                    continue;
-                if (this.distanceTransform[x - 1][y] < current)
-                    continue;
-                if (this.distanceTransform[x + 1][y] < current)
-                    continue;
-                if (this.distanceTransform[x][y + 1] < current)
-                    continue;
-                if (this.distanceTransform[x + 1][y + 1] < current)
-                    continue;
-                if (this.distanceTransform[x - 1][y + 1] < current)
-                    continue;
-                change = true;
-                temp[x][y]++;
-            }
-        this.distanceTransform = temp;
-        return change;
+        //Return whether we are done or not
+        return notDone;
     }
     floodFillReset() { this.floodFill = undefined; }
     floodFillManager(p) {
@@ -3995,54 +3991,113 @@ class RoomPlanner {
             this.floodFill[p.y][p.x] = -1;
             return 2;
         }
-        else if (this.floodFillStep())
+        else if (this.floodFillAlgorithm())
             return 1;
         else
             return 0;
     }
-    floodFillStep() {
-        var temp = this.floodFill;
+    floodFillAlgorithm() {
+        var temp = _.cloneDeep(this.floodFill);
         if (temp == undefined || this.floodFill == undefined)
             throw null;
         var change = false;
         for (var y = 1; y < 49; y++)
-            for (var x = 1; x < 49; x++) {
-                var current = this.floodFill[x][y];
-                var infect = false;
-                if (current == 0 || current == -1)
-                    continue;
-                if (this.floodFill[x][y - 1] == -1)
-                    infect = true;
-                else if (this.floodFill[x + 1][y - 1] == -1)
-                    infect = true;
-                else if (this.floodFill[x - 1][y - 1] == -1)
-                    infect = true;
-                else if (this.floodFill[x - 1][y] == -1)
-                    infect = true;
-                else if (this.floodFill[x + 1][y] == -1)
-                    infect = true;
-                else if (this.floodFill[x][y + 1] == -1)
-                    infect = true;
-                else if (this.floodFill[x + 1][y + 1] == -1)
-                    infect = true;
-                else if (this.floodFill[x - 1][y + 1] == -1)
-                    infect = true;
-                if (infect) {
-                    var l = this.room.lookAt(y, x);
-                    var t = false;
-                    for (let i in l)
-                        if (l[i].type == LOOK_STRUCTURES) {
-                            t = true;
-                            break;
-                        }
-                    if (!t) {
-                        change = true;
-                        temp[x][y] = -1;
-                    }
+            for (var x = 1; x < 49; x++)
+                if (this.floodFill[y][x] == -1) {
+                    if (this.floodFill[y][x - 1] == 1)
+                        change = this.floodFillHelper(y, x - 1, temp) || change;
+                    if (this.floodFill[y + 1][x - 1] == 1)
+                        change = this.floodFillHelper(y + 1, x - 1, temp) || change;
+                    if (this.floodFill[y - 1][x - 1] == 1)
+                        change = this.floodFillHelper(y - 1, x - 1, temp) || change;
+                    if (this.floodFill[y - 1][x] == 1)
+                        change = this.floodFillHelper(y - 1, x, temp) || change;
+                    if (this.floodFill[y + 1][x] == 1)
+                        change = this.floodFillHelper(y + 1, x, temp) || change;
+                    if (this.floodFill[y][x + 1] == 1)
+                        change = this.floodFillHelper(y, x + 1, temp) || change;
+                    if (this.floodFill[y + 1][x + 1] == 1)
+                        change = this.floodFillHelper(y + 1, x + 1, temp) || change;
+                    if (this.floodFill[y - 1][x + 1] == 1)
+                        change = this.floodFillHelper(y - 1, x + 1, temp) || change;
                 }
-            }
-        this.roomMatrix = temp;
+        this.floodFill = temp;
         return change;
+    }
+    floodFillHelper(y, x, temp) {
+        var l = this.room.lookAt(x, y);
+        var t = false;
+        for (let i in l)
+            if (l[i].type == LOOK_STRUCTURES) {
+                t = true;
+                break;
+            }
+        if (!t) {
+            temp[y][x] = -1;
+            return true;
+        }
+        return false;
+    }
+    /**
+     * Minimum cut manager. Handles the execution of the mincut algortithm on a
+     * room.
+     * @param p The positions to be protected. Undefined for subsequent calls.
+     */
+    minCutManager(p = undefined) {
+        if (p != undefined && this.minCutProtect == undefined) {
+            this.minCutProtect = _.cloneDeep(p);
+            return 4;
+        }
+        else if (this.roomMatrix == undefined) {
+            this.calculateRoomMatrix();
+            return 3;
+        }
+        else if (this.supX == undefined || this.infX == undefined || this.supY == undefined || this.infY == undefined || this.minCut == undefined) {
+            this.minCutSetup();
+            return 2;
+        }
+        else if (this.minCutAlgorithm())
+            return 1;
+        else
+            return 0;
+    }
+    minCutSetup() {
+        this.minCut = _.cloneDeep(this.roomMatrix);
+        if (this.minCutProtect == undefined)
+            throw "Min Cut Protect Not Found";
+        //Transfer x and y positons of items to protect into an array
+        var y = [];
+        var x = [];
+        //Iterate
+        for (var i = 0; i < this.minCutProtect.length; i++) {
+            this.minCut[this.minCutProtect[i].y][this.minCutProtect[i].x] = 2;
+            //Push x value
+            x.push(this.minCutProtect[i].x);
+            //Push y value
+            y.push(this.minCutProtect[i].y);
+        }
+        //Store the max x,y and min x,y
+        this.supX = _.max(x);
+        this.infX = _.min(x);
+        this.supY = _.max(x);
+        this.infY = _.min(x);
+    }
+    minCutAlgorithm() {
+        var xGuess = [];
+        for (var i = 0; i < this.infX; i++) {
+            xGuess.push(0);
+            for (var j = 0; j < 49; j++) {
+                if (this.minCut[j][i] == 1)
+                    xGuess[i]++;
+                else if (this.minCut[j][i] == 3)
+                    break;
+            }
+        }
+        xGuess.indexOf(_.min(xGuess));
+        for (var j = 0; j < 49; j++)
+            if (this.minCut[j][i] == 1)
+                this.minCut[j][i] = 3;
+        return false;
     }
 }
 
@@ -4070,6 +4125,17 @@ class Colony {
     }
     //Methods
     run() {
+        this.home = Game.rooms[this.home.name];
+        var h = this.home.find(FIND_HOSTILE_CREEPS);
+        if (h != undefined && h.length > 0) {
+            var t = this.home.find(FIND_MY_STRUCTURES, { filter: (f) => f.structureType == STRUCTURE_TOWER });
+            for (var i = 0; i < t.length; i++) {
+                // This is legal because of the filter we used.
+                // @ts-ignore
+                var tower = t[i];
+                tower.attack(h[0]);
+            }
+        }
         //Request a census every 100 ticks
         if (Game.time % 100 == 0)
             Queue.request(new Run_Census(this));
@@ -4078,6 +4144,13 @@ class Colony {
             Queue.request(new Manage_Construction(this));
         if (this.roomPlanner.getDistanceTransform() == undefined)
             Queue.request(new Calculate_DistanceTransform(this));
+        // if (this.roomPlanner.getMinCut() == undefined) {
+        //   var pos:RoomPosition[] = [];
+        //   var t = this.home.find(FIND_MY_STRUCTURES);
+        //   for (var i = 0; i < t.length; i ++) pos.push(t[i].pos);
+        //   pos.push(this.home.controller!.pos);
+        //   Queue.request(new Calculate_MinCut(this, pos));
+        // }
         if (Game.flags["Flood"] != undefined) {
             if (Game.flags["Flood"].room.name == this.home.name)
                 Queue.request(new Calculate_FloodFill(this, Game.flags["Flood"].pos));
@@ -4086,7 +4159,7 @@ class Colony {
         //Run the spawn manger.
         spawn(this.home);
         if (Game.flags["Visuals"] != undefined)
-            new VisualsManager().run(this.home.name, this.roomPlanner.getDistanceTransform(), this.roomPlanner.getFloodFill());
+            new VisualsManager().run(this.home.name, this.roomPlanner.getDistanceTransform(), this.roomPlanner.getFloodFill(), this.roomPlanner.getMinCut());
     }
     /**
      * This method runs a quick census of all the creeps and updates the memory in
@@ -4266,6 +4339,8 @@ exports.colonies = void 0;
  * else means I should really get to work.
  */
 const loop = ErrorMapper.wrapLoop(() => {
+    //Purge duplicate requests on ocasion
+    Queue.purgeDuplicateRequests();
     //Proccess the requests from the last tick
     queue.proccessRequests();
     //Check if we have any colonies. If we don't make one.
@@ -4276,8 +4351,7 @@ const loop = ErrorMapper.wrapLoop(() => {
         }
     }
     //Generate a pixel if we can.
-    if (Game.cpu.bucket == 10000)
-        Game.cpu.generatePixel(); //Game.cpu.generatePixel(); is not a command in private servers, uncomment when pushing to public
+    // if(Game.cpu.bucket == 10000) Game.cpu.generatePixel(); //Game.cpu.generatePixel(); is not a command in private servers, uncomment when pushing to public
     //Things that should always be ran
     queue.queueAdd(new creepAI_CreepManager(), priority.HIGH);
     //Add running the colonies to the queue
@@ -4292,8 +4366,6 @@ const loop = ErrorMapper.wrapLoop(() => {
     if (rooms == undefined)
         rooms = (new init_Rooms(rooms).run());
     //Telemetry stuffs
-    queue.queueAdd(new print_Rooms(rooms));
-    queue.queueAdd(new print_Stats());
     queue.printQueue();
     queue.runQueue();
 });

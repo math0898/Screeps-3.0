@@ -178,4 +178,27 @@ export class Queue{
     //Clear the requests array
     Queue.requests = []; //O(2 + 6n)
   }
+  /**
+   * prugeDuplicateRequests removes all requests which are duplicates. This
+   * prevents certain algorithms from running multiple times per tick such as
+   * distanceTransform.
+   * Runtime: O(2n) where n is the length of the requests array
+   */
+   static purgeDuplicateRequests(){
+     //An array of request names
+     var have:string[] = [];
+     //A temporary array to store requests once they've been confirmed unique
+     var temp:Request[] = [];
+     //Iterate through the requests and check if they've been in the array
+     for (var i = 0; i < Queue.requests.length; i++) {
+       //Check if its in the array
+       if (have.indexOf(Queue.requests[i].getTask().getName()) > -1) continue;
+       //If its not in the array add it
+       have.push(Queue.requests[i].getTask().getName());
+       //Add it to the temp array
+       temp.push(Queue.requests[i]);
+     }
+     //Update the requests array with the purged copy
+     Queue.requests = temp;
+   }
 }

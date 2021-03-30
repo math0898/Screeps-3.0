@@ -1,13 +1,15 @@
 
 export class VisualsManager{
-  run(roomName:string, trans:number[][] | undefined, flood:number[][] | undefined){
+  run(roomName:string, trans:number[][] | undefined, flood:number[][] | undefined, minCut:number[][] | undefined){
     if (Game.flags["DistanceTransform"] != undefined) this.distanceTransform(trans, roomName);
     if (Game.flags["FloodFill"] != undefined) this.floodFill(flood, roomName);
+    if (Game.flags["MinCut"] != undefined) this.minCut(minCut, roomName);
   }
   private distanceTransform(trans:number[][] | undefined, roomName:string){
     if(trans != undefined) for(var i = 0; i < 50; i++){
       for (var j = 0; j < 50; j++) {
         switch(trans[i][j]){
+          case -1: new RoomVisual(roomName).circle(j,i, {fill: "#607D8B", opacity: 80}); break;
           case 0: break;
           case 1: new RoomVisual(roomName).circle(j,i, {fill: "#B71C1C", opacity: 80}); break;
           case 2: new RoomVisual(roomName).circle(j,i, {fill: "#880E4F", opacity: 80}); break;
@@ -29,13 +31,19 @@ export class VisualsManager{
     }
   }
   private floodFill(flood:number[][] | undefined, roomName:string){
-    if (flood != undefined) for(var i = 0; i < 50; i++){
-      for (var j = 0; j < 50; j++) {
-        switch(flood[i][j]){
-          case 0: break;
-          case -1: new RoomVisual(roomName).circle(j,i, {fill: "#388E3C", opacity: 80}); break;
-          case 1: new RoomVisual(roomName).circle(j,i, {fill: "#303F9F", opacity: 80}); break;
-        }
+    if (flood != undefined) for (var i = 0; i < 50; i++) for (var j = 0; j < 50; j++) {
+      switch(flood[i][j]){
+        case 0: break;
+        case -1: new RoomVisual(roomName).circle(j,i, {fill: "#388E3C", opacity: 80}); break;
+        case 1: new RoomVisual(roomName).circle(j,i, {fill: "#303F9F", opacity: 80}); break;
+      }
+    }
+  }
+  private minCut(minCut:number[][] | undefined, roomName:string){
+    if (minCut != undefined) for (var i = 0; i < 50; i++) for (var j = 0; j < 50; j++) {
+      switch(minCut[i][j]){
+        case 2: new RoomVisual(roomName).circle(j,i, {fill: "#004D40", opacity: 80}); break;
+        case 3: new RoomVisual(roomName).circle(j,i, {fill: "#558B2F", opacity: 80}); break;
       }
     }
   }
