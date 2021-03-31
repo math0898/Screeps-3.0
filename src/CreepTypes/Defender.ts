@@ -11,9 +11,6 @@ export class Defender extends Creep_Prototype implements Creep_Role {
   //Variables
   name:string = "Defender";
 
-  //Constructor
-  constructor(){super();}
-
   //Real Methods
   run(creep:Creep){
     Defender.run(creep);

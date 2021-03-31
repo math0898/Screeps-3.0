@@ -13,7 +13,7 @@ import { StatsManager} from "Stats";
 import { init_Rooms, print_Rooms, update_Rooms } from "Room";
 import { print_Stats, collect_Stats} from "Stats";
 import { run_CreepManager, creepAI_CreepManager } from "CreepManager";
-import { Colony, Run_Colony, Run_Census, Setup_Goals, Manage_Construction} from "Colony";
+import { Colony, Run_Colony, Run_Census, Setup_Goals } from "Colony";
 
 //A queue object holding the items which have been queue'd to complete.
 var queue: Queue = new Queue();
@@ -44,7 +44,7 @@ export const loop = ErrorMapper.wrapLoop(() => { //Keep this main line
     }
   }
   //Generate a pixel if we can.
-  // if(Game.cpu.bucket == 10000) Game.cpu.generatePixel(); //Game.cpu.generatePixel(); is not a command in private servers, uncomment when pushing to public
+  if(Game.cpu.bucket == 10000) Game.cpu.generatePixel(); //Game.cpu.generatePixel(); is not a command in private servers, uncomment when pushing to public
   //Things that should always be ran
   queue.queueAdd(new creepAI_CreepManager(), priority.HIGH);
   //Add running the colonies to the queue

@@ -19,7 +19,7 @@ export abstract class Creep_Prototype {
    * Since this is the abstract class it is empty, but all other classes which
    * extend this one should add an appropriate role string.
    */
-  role:string = "";
+  private role:string = "";
 
   /**
    * getRole retruns the role stored in the role string of the object.

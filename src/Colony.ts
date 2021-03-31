@@ -22,8 +22,6 @@ export class Colony{
   neighborsPrototype?:struc_Room[];
   homePrototype:struc_Room;
   spawnManager:SpawnManager;
-  construction:ConstructionProject[];
-  constructionStage:number;
   roomPlanner:RoomPlanner;
 
   //Constructors
@@ -34,8 +32,6 @@ export class Colony{
     if(r.controller != undefined) if(r.controller.level <= 2) this.era = 0;
     this.spawnManager = new SpawnManager(Game.rooms[this.homePrototype.getRoomRefrence()]);
     this.home.memory.counts = p;
-    this.construction = [];
-    this.constructionStage = 0;
     this.roomPlanner = new RoomPlanner(this.home);
   }
 
@@ -52,10 +48,10 @@ export class Colony{
         tower.attack(h[0]);
       }
     }
+    var c:ConstructionSite[] | null = this.home.find(FIND_CONSTRUCTION_SITES);
+    if(this.roomPlanner.getConstruction() != undefined && c.length == 0) this.roomPlanner.getConstruction()!.pop()!.place();
     //Request a census every 100 ticks
     if(Game.time % 100 == 0) Queue.request(new Run_Census(this));
-    //If we're not done with construction make a request to run the manager
-    if(this.constructionStage != 2) Queue.request(new Manage_Construction(this));
     if (this.roomPlanner.getDistanceTransform() == undefined) Queue.request(new Calculate_DistanceTransform(this));
     // if (this.roomPlanner.getMinCut() == undefined) {
     //   var pos:RoomPosition[] = [];
@@ -64,9 +60,7 @@ export class Colony{
     //   pos.push(this.home.controller!.pos);
     //   Queue.request(new Calculate_MinCut(this, pos));
     // }
-    if (Game.flags["Flood"] != undefined){
-      if (Game.flags["Flood"].room!.name == this.home.name) Queue.request(new Calculate_FloodFill(this, Game.flags["Flood"].pos));
-    }
+    if (Game.flags["Flood"] != undefined) if (Game.flags["Flood"].room!.name == this.home.name) Queue.request(new Calculate_FloodFill(this, Game.flags["Flood"].pos));
     this.checkGoals();
     //Run the spawn manger.
     spawn(this.home);
@@ -113,38 +107,6 @@ export class Colony{
      if(c != null && c.length > 0) this.goals.push("Build","Build","Build","Build")
      if(s != null && s.length > 0) this.goals.push("Fill","Fill","Fill","Fill","Fill");
    }
-   /**
-    * This method handles the construction of projects in the colony.
-    */
-    manageConstruction(){
-      //Do construction projects
-      if(this.constructionStage == 0) {
-        for(let s in Game.spawns){
-          if(Game.spawns[s].room.name == this.home.name){
-            var train = Game.spawns[s];
-            var sources = train.room.find(FIND_SOURCES);
-            for(var i = 0; i < sources.length; i++) {
-              var path = train.pos.findPathTo(sources[i], {ignoreRoads: true, ignoreCreeps: true, swampCost: 1});
-              for(var j = 0; j < path.length -1; j++){
-                this.construction.push(new ConstructionProject(new RoomPosition(path[j].x, path[j].y, train.room.name), STRUCTURE_ROAD));
-              }
-              path = sources[i].pos.findPathTo(sources[i].room.controller!, {ignoreRoads: true, ignoreCreeps: true, swampCost: 1});
-              for(var j = path.length -2 ; j >= 0; j--){
-                this.construction.push(new ConstructionProject(new RoomPosition(path[j].x, path[j].y, train.room.name), STRUCTURE_ROAD));
-              }
-            }
-            var path = train.pos.findPathTo(train.room.controller!, {ignoreRoads: true, ignoreCreeps: true, swampCost: 1});
-            for(var j = 0 ; j < path.length -1; j++){
-              this.construction.push(new ConstructionProject(new RoomPosition(path[j].x, path[j].y, train.room.name), STRUCTURE_ROAD));
-            }
-          }
-        }
-        this.constructionStage++;
-      }
-      var c:ConstructionSite[] | null = this.home.find(FIND_CONSTRUCTION_SITES);
-      if(this.construction.length > 0 && c.length == 0) this.construction.pop()!.place();
-      if(this.construction.length == 0 && c.length == 0) this.constructionStage++;
-    }
 }
 
 export class Run_Colony extends template implements task {
@@ -198,36 +160,6 @@ export class Setup_Goals extends template implements task {
   }
 }
 
-export class Manage_Construction extends template implements task {
-  //Varaibles
-  name:string = "Manage Construction";
-  colony:Colony;
-
-  //Constructor
-  constructor(c:Colony){
-    super();
-    this.colony = c;
-  }
-
-  //Methods
-  run(){
-    this.colony.manageConstruction();
-  }
-}
-
-class ConstructionProject {
-  pos:RoomPosition;
-  type:BuildableStructureConstant;
-  constructor(p:RoomPosition, t:BuildableStructureConstant){
-    this.pos = p;
-    this.type = t;
-  }
-
-  place(){
-    Game.rooms[this.pos.roomName].createConstructionSite(this.pos, this.type)
-  }
-}
-
 export class Calculate_DistanceTransform extends template implements task {
   //Variables
   name:string = "Calculate Distance-transform";
@@ -241,7 +173,7 @@ export class Calculate_DistanceTransform extends template implements task {
 
   //Methods
   run(){
-    if (this.colony.roomPlanner.distanceTransformManager() != 0) Queue.request(new Calculate_DistanceTransform(this.colony));
+    if (this.colony.roomPlanner.computeDistanceTransform() != 0) Queue.request(new Calculate_DistanceTransform(this.colony));
   }
 }
 
