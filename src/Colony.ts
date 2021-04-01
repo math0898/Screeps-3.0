@@ -64,7 +64,7 @@ export class Colony{
     this.checkGoals();
     //Run the spawn manger.
     spawn(this.home);
-    if (Game.flags["Visuals"] != undefined) new VisualsManager().run(this.home.name, this.roomPlanner.getDistanceTransform(), this.roomPlanner.getFloodFill(), this.roomPlanner.getMinCut());
+    if (Game.flags["Visuals"] != undefined) new VisualsManager().run(this.home.name, this.roomPlanner.getDistanceTransform(), this.roomPlanner.getFloodFill());
   }
   /**
    * This method runs a quick census of all the creeps and updates the memory in
@@ -98,7 +98,7 @@ export class Colony{
      var w:Structure[] | null = this.home.find(FIND_STRUCTURES, {filter: (c) => (c.structureType == STRUCTURE_RAMPART || c.structureType == STRUCTURE_WALL) && c.hits < threashold});
      var r:Structure[] | null = this.home.find(FIND_STRUCTURES, {filter: (c) => c.hits < c.hitsMax && ( c.structureType != STRUCTURE_WALL && c.structureType != STRUCTURE_RAMPART)});
      var c:ConstructionSite[] | null = this.home.find(FIND_CONSTRUCTION_SITES);
-     var d:Resource[] | null = this.home.find(FIND_DROPPED_RESOURCES, {filter: {resourceType: RESOURCE_ENERGY}});
+     // var d:Resource[] | null = this.home.find(FIND_DROPPED_RESOURCES, {filter: {resourceType: RESOURCE_ENERGY}});
      var s:Structure[] | null = this.home.find(FIND_MY_STRUCTURES, {filter: (s) => (s.structureType == STRUCTURE_SPAWN || s.structureType == STRUCTURE_EXTENSION || s.structureType == STRUCTURE_TOWER) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0}); //O(7 + 3n)
 
      this.goals.push("Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade");
@@ -192,25 +192,24 @@ export class Calculate_FloodFill extends template implements task {
 
   //Methods
   run(){
-    if (this.colony.roomPlanner.floodFillManager(this.start) != 0) Queue.request(new Calculate_FloodFill(this.colony, this.start));
+    if (this.colony.roomPlanner.computeFloodfill() != 0) Queue.request(new Calculate_FloodFill(this.colony, this.start));
   }
 }
-
-export class Calculate_MinCut extends template implements task {
-  //Variables
-  name:string = "Calculate Min Cut";
-  colony:Colony;
-  protect:RoomPosition[] | undefined;
-
-  //Constructor
-  constructor(c:Colony, p:RoomPosition[] | undefined) {
-    super();
-    this.colony = c;
-    this.protect = p;
-  }
-
-  //Methods
-  run() {
-    if (this.colony.roomPlanner.minCutManager(this.protect) != 0) Queue.request(new Calculate_MinCut(this.colony, undefined));
-  }
-}
+// export class Calculate_MinCut extends template implements task {
+//   //Variables
+//   name:string = "Calculate Min Cut";
+//   colony:Colony;
+//   protect:RoomPosition[] | undefined;
+//
+//   //Constructor
+//   constructor(c:Colony, p:RoomPosition[] | undefined) {
+//     super();
+//     this.colony = c;
+//     this.protect = p;
+//   }
+//
+//   //Methods
+//   run() {
+//     if (this.colony.roomPlanner.minCutManager(this.protect) != 0) Queue.request(new Calculate_MinCut(this.colony, undefined));
+//   }
+// }

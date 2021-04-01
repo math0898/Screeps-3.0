@@ -24,11 +24,16 @@ var statsManager: StatsManager = new StatsManager();
 //A colony array holding all of the colonies
 export var colonies: Colony[];
 
+// @ts-ignore, javascript shenanigans, ignore it typescript
+global.StatsManager = module.exports = StatsManager;
+// @ts-ignore
+global.queue = module.exports = queue;
+
 /**
  * This is the main loop for the program. Expect clean concise code, anything
  * else means I should really get to work.
  */
-export const loop = ErrorMapper.wrapLoop(() => { //Keep this main line
+module.exports.loop = function() { //Keep this main line
 
   //Purge duplicate requests on ocasion
   Queue.purgeDuplicateRequests();
@@ -44,7 +49,7 @@ export const loop = ErrorMapper.wrapLoop(() => { //Keep this main line
     }
   }
   //Generate a pixel if we can.
-  if(Game.cpu.bucket == 10000) Game.cpu.generatePixel(); //Game.cpu.generatePixel(); is not a command in private servers, uncomment when pushing to public
+  if(Game.cpu.bucket == 10000) if (Game.shard.name != "") Game.cpu.generatePixel();
   //Things that should always be ran
   queue.queueAdd(new creepAI_CreepManager(), priority.HIGH);
   //Add running the colonies to the queue
@@ -60,6 +65,5 @@ export const loop = ErrorMapper.wrapLoop(() => { //Keep this main line
   if (rooms == undefined) rooms = (new init_Rooms(rooms).run());
 
   //Telemetry stuffs
-  queue.printQueue();
   queue.runQueue();
-});
+}

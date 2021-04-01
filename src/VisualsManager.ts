@@ -1,6 +1,6 @@
 
 export class VisualsManager{
-  run(roomName:string, trans:number[][] | undefined, flood:number[][] | undefined, minCut:number[][] | undefined){
+  run(roomName:string, trans:number[][] | undefined, flood:number[][] | undefined, minCut:number[][] | undefined = undefined){
     if (Game.flags["DistanceTransform"] != undefined) this.distanceTransform(trans, roomName);
     if (Game.flags["FloodFill"] != undefined) this.floodFill(flood, roomName);
     if (Game.flags["MinCut"] != undefined) this.minCut(minCut, roomName);
