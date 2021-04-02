@@ -33,12 +33,16 @@ lot of computation instead of calculating each cell individually.
 ### Distance Transform
 The distance transform algorithm checks how far away each cell is from the
 nearest wall. My implementation uses a version of euclidean distance.
+
 [Screeps Plus](https://wiki.screepspl.us/index.php/Automatic_base_building#Distance-Transform)
+
 [Wikipedia](https://en.wikipedia.org/wiki/Distance_transform)
 
 ### Flood Fill
 My code will likely not have much a reason to utilize flood fill as it can be kind
 of expensive. Nonetheless I have an optimized implementation that can be viewed
 by a player using room visuals and controlled with flags.
+
 [Screeps Plus](https://wiki.screepspl.us/index.php/Automatic_base_building#Flood_Fill)
+
 [Wikipedia](https://en.wikipedia.org/wiki/Flood_fill)
