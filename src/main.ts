@@ -3,8 +3,6 @@
  * and instead the heavy lifting should be done by clases/objects defined outside
  * of here.
  */
-//I think this line is fundamental to the functionality of type script on screeps.
-import { ErrorMapper } from "utils/ErrorMapper";
 //This class handles everything related to rooms and their general information.
 import { struc_Room } from "Room";
 import { Queue, priority } from "Queue";
@@ -19,13 +17,12 @@ import { Colony, Run_Colony, Run_Census, Setup_Goals } from "Colony";
 var queue: Queue = new Queue();
 //A rooms object holding all the rooms.
 var rooms: struc_Room[];
-//A stats object which handles the collection of stats
-var statsManager: StatsManager = new StatsManager();
+var statsManager = new StatsManager();
 //A colony array holding all of the colonies
 export var colonies: Colony[];
 
 // @ts-ignore, javascript shenanigans, ignore it typescript
-global.StatsManager = module.exports = StatsManager;
+global.Stats = module.exports = StatsManager;
 // @ts-ignore
 global.queue = module.exports = queue;
 

@@ -4,8 +4,6 @@ import { Queue } from "Queue";
 import { Creep_Role, Creep_Prototype } from "CreepTypes/CreepRole";
 import { Scout } from "CreepTypes/Scout";
 import { Defender } from "CreepTypes/Defender";
-import { Colony } from "Colony";
-import { colonies } from "main"
 //Array indexed by a string which corrosponds to creep role object
 interface IDictionary { [index: string]: Creep_Role; }
 var params = {} as IDictionary;
@@ -45,12 +43,8 @@ export class CreepManager{
       if (creep.spawning) break;
       //If the creep has a defined role run that role's AI
       if(creep.memory.role != undefined) params[creep.memory.role].run(creep);
-      //Otherwise run the general code passing through the colony's goals
-      else {
-        var a:Colony | undefined = undefined;
-        for (var i = 0; i < colonies.length; i++) if(colonies[i].home.name == creep.memory.room) { a = colonies[i]; break}
-        if (a != undefined) Creep_Prototype.run(creep, a!.goals.pop());
-      }
+      //Run the creep generalized AI
+      else Creep_Prototype.run(creep);
       //Check the creep's life
       Creep_Prototype.checkLife(creep);
     }

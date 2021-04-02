@@ -8,6 +8,7 @@ import { spawn } from "logic.spawn";
 import { Queue } from "Queue";
 import { VisualsManager } from "VisualsManager";
 import { RoomPlanner } from "RoomPlanner";
+import { Goals } from "CreepTypes/CreepRole";
 interface IDictionary { [index: string]: number; }
 var p = {} as IDictionary;
 /**
@@ -18,7 +19,6 @@ export class Colony{
   era:number;
   home:Room;
   neighbors?:Room[];
-  goals:string[] = [];
   neighborsPrototype?:struc_Room[];
   homePrototype:struc_Room;
   spawnManager:SpawnManager;
@@ -90,8 +90,7 @@ export class Colony{
    * which are currently needed.
    */
    checkGoals(){
-     //Reset the goals
-     this.goals = []
+     var goal:Goals[] = [];
      //Search for a set of objects
      var threashold:number = 3;
      for (var i = 1; i <= this.home.controller!.level; i++) threashold = threashold * 10;
@@ -100,12 +99,13 @@ export class Colony{
      var c:ConstructionSite[] | null = this.home.find(FIND_CONSTRUCTION_SITES);
      // var d:Resource[] | null = this.home.find(FIND_DROPPED_RESOURCES, {filter: {resourceType: RESOURCE_ENERGY}});
      var s:Structure[] | null = this.home.find(FIND_MY_STRUCTURES, {filter: (s) => (s.structureType == STRUCTURE_SPAWN || s.structureType == STRUCTURE_EXTENSION || s.structureType == STRUCTURE_TOWER) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0}); //O(7 + 3n)
-
-     this.goals.push("Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade","Upgrade");
-     if(w != null && w.length > 0) this.goals.push("Wall");
-     if(r != null && r.length > 0) this.goals.push("Fix","Fix");
-     if(c != null && c.length > 0) this.goals.push("Build","Build","Build","Build")
-     if(s != null && s.length > 0) this.goals.push("Fill","Fill","Fill","Fill","Fill");
+     //Check the goals that need to be taken
+     if (w != null && w.length > 0 && Game.time % 500 == 0) goal.push(Goals.REINFORCE);
+     if (r != null && r.length > 0 && Game.time % 500 == 0) goal.push(Goals.FIX);
+     if (c != null && c.length > 0 && Game.time % 250 == 0) goal.push(Goals.BUILD);
+     if (s != null && s.length > 0 && Game.time % 25 == 0) goal.push(Goals.FILL);
+     //Assign the goals to the creeps ^-^
+     for (var i = 0; i < goal.length; i++) for (let c in Game.creeps) if (Game.creeps[c].room.name == this.home.name && (Game.creeps[c].memory.goal == undefined || Game.creeps[c].memory.goal == Goals.UPGRADE)) Game.creeps[c].memory.goal = goal.pop();
    }
 }
 

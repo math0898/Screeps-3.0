@@ -1,6 +1,7 @@
-// example declaration file - remove these and add your own custom typings
-
-// memory extension samples
+/**
+ * This interface describes the memory being stored on individual creeps and
+ * their typings.
+ */
 interface CreepMemory {
   sources?:string;
   emptyStructure?:string;
@@ -16,6 +17,7 @@ interface CreepMemory {
   role?: string;
   reinforce?:string;
   room: string;
+  goal?: string;
 }
 
 interface Memory {
@@ -28,11 +30,4 @@ interface Memory {
 interface IDictionary { [index: string]: number; }
 interface RoomMemory {
   counts:IDictionary;
-}
-
-// `global` extension samples
-declare namespace NodeJS {
-  interface Global {
-    log: any;
-  }
 }

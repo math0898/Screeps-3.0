@@ -7,6 +7,12 @@ var debug:boolean = true;
  */
 var publicDebug:boolean = true;
 /**
+ * A breif enum describing the possible goals creeps can carry out for their
+ * colony.
+ */
+export enum Goals {FILL = "Fill", FIX = "Fix", BUILD = "Build",
+ UPGRADE = "Upgrade", REINFORCE = "Reinforce"}
+/**
  * This is an abstract class which holds of lot of useful utility functions for
  * creep roles in general. This class includes an optimized movement method, and
  * short hands for common tasks such as mining and filling containers. Creep
@@ -113,7 +119,7 @@ export abstract class Creep_Prototype {
       if (s != null) creep.memory.emptyStructure = s.id;
     }
     //Make sure we have a target structure before going on
-    if (creep.memory.emptyStructure != undefined){
+    if (creep.memory.emptyStructure != undefined) {
       //Read memory
       var x:StructureExtension | StructureSpawn | null = Game.getObjectById(creep.memory.emptyStructure);
       //Check if the structure exists
@@ -122,9 +128,13 @@ export abstract class Creep_Prototype {
         if (!(creep.pos.isNearTo(x))) this.creepOptimizedMove(creep, x.pos);
         //Transfer the resource
         else creep.transfer(x, RESOURCE_ENERGY);
-      //If the structure is null reset the memory
+        //If the structure is null reset the memory
     } else creep.memory.emptyStructure = undefined;
+    //Looks like stuff is good
+    return 0;
     }
+  //Something went wrong
+  return -1;
   }
   /**
    * This method makes the creep pick up nearby dropped resources. As a method
@@ -219,7 +229,9 @@ export abstract class Creep_Prototype {
       if (!(creep.pos.inRangeTo(r, 3))) this.creepOptimizedMove(creep, r.pos);
       //Upgrade the controller
       else creep.upgradeController(r);
+      return 0;
     }
+    return -1;
   }
   /**
    * This method, creepBuild makes the creep build the nearest construction
@@ -250,7 +262,11 @@ export abstract class Creep_Prototype {
         else creep.build(b);
         //We need to find a new construction site
       } else creep.memory.building = undefined;
+      //Looks like a success
+      return 0;
     }
+    //Something went wrong
+    return -1;
   }
   /**
    * creepMelee makes the creep attack the given victim. It uses moveTo without
@@ -298,14 +314,17 @@ export abstract class Creep_Prototype {
         //We need to find a new construction site
         creep.memory.repair = undefined;
       }
+      return 0;
     }
+    return -1;
   }
-  static creepWall(creep:Creep){
+  static creepReinforce(creep:Creep){
     var threashold:number = 3;
     for (var i = 1; i <= creep.room.controller!.level; i++) threashold = threashold * 10;
     if(debug) creep.say('⚙ 🏛', publicDebug);
     if (creep.memory.reinforce == undefined){
-      var w:Structure | null = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (c) => (c.structureType == STRUCTURE_RAMPART || c.structureType == STRUCTURE_WALL) && c.hits < threashold});
+      var w:Structure | null = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (c) => (c.structureType == STRUCTURE_RAMPART || c.structureType == STRUCTURE_WALL) && c.hits < (threashold/5)});
+      if (w == null) w = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (c) => (c.structureType == STRUCTURE_RAMPART || c.structureType == STRUCTURE_WALL) && c.hits < threashold});
       if (w != null) creep.memory.reinforce = w.id;
     }
     if (creep.memory.reinforce != undefined) {
@@ -314,23 +333,38 @@ export abstract class Creep_Prototype {
         if (!(creep.pos.inRangeTo(w, 3))) this.creepOptimizedMove(creep, w.pos);
         else creep.repair(w);
       } else creep.memory.reinforce = undefined;
+      return 0;
     }
+    return -1;
   }
-  static run(creep:Creep, goal?:string){
+  static run(creep:Creep){
+    //If goal in creep memory was undefined we can upgrade for now
+    if (creep.memory.goal == undefined) creep.memory.goal = Goals.UPGRADE;
     //Check if we're full on energy
     if (creep.carry.energy == creep.carryCapacity) creep.memory.working = true;
     //If we're out of energy obtain more
     else if (creep.carry.energy == 0 || creep.memory.working == undefined) creep.memory.working = false;
     //Lets Spend some energy
     if(creep.memory.working) {
-      //We should otherwise fill up buildings
-      switch(goal) {
-        case undefined: creep.say("UNDEF G"); return;
-        case "Fill": Creep_Prototype.creepFill(creep); break;
-        case "Fix": Creep_Prototype.creepRepair(creep); break;
-        case "Build": Creep_Prototype.creepBuild(creep); break;
-        case "Upgrade": Creep_Prototype.creepUpgrade(creep); break;
-        case "Wall": Creep_Prototype.creepWall(creep); break;
+      //Switch through possible goals and our actions based on them
+      switch(creep.memory.goal) {
+        //If goal is undefined... it shouldn't be make a confused face and hope math fixes it
+        case undefined: creep.say("⁉"); return;
+        case Goals.BUILD:
+          if (Creep_Prototype.creepBuild(creep) != 0) creep.memory.goal = undefined;
+          break;
+        case Goals.FILL:
+          if (Creep_Prototype.creepFill(creep) != 0) creep.memory.goal = undefined;
+          break;
+        case Goals.FIX:
+          if (Creep_Prototype.creepRepair(creep) != 0) creep.memory.goal = undefined;
+          break;
+        case Goals.REINFORCE:
+          if (Creep_Prototype.creepReinforce(creep) != 0) creep.memory.goal = undefined;
+          break;
+        case Goals.UPGRADE:
+          if (Creep_Prototype.creepUpgrade(creep) != 0) creep.memory.goal = undefined;
+          break;
       }
     }
     //Lets get some energy

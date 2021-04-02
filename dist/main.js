@@ -314,6 +314,8 @@ class StatsManager {
         console.log("Average CPU Usage: " + Memory.cpuAverage);
         //Print the peak cpu used
         console.log("Peak CPU Usage: " + Memory.cpuPeak);
+        //Report everything was successful
+        return 0;
     }
     /**
      * Collects all the stats for cpu this tick.
@@ -588,6 +590,18 @@ class update_Rooms extends template {
  */
 var publicDebug = true;
 /**
+ * A breif enum describing the possible goals creeps can carry out for their
+ * colony.
+ */
+var Goals;
+(function (Goals) {
+    Goals["FILL"] = "Fill";
+    Goals["FIX"] = "Fix";
+    Goals["BUILD"] = "Build";
+    Goals["UPGRADE"] = "Upgrade";
+    Goals["REINFORCE"] = "Reinforce";
+})(Goals || (Goals = {}));
+/**
  * This is an abstract class which holds of lot of useful utility functions for
  * creep roles in general. This class includes an optimized movement method, and
  * short hands for common tasks such as mining and filling containers. Creep
@@ -719,7 +733,11 @@ class Creep_Prototype {
             }
             else
                 creep.memory.emptyStructure = undefined;
+            //Looks like stuff is good
+            return 0;
         }
+        //Something went wrong
+        return -1;
     }
     /**
      * This method makes the creep pick up nearby dropped resources. As a method
@@ -827,7 +845,9 @@ class Creep_Prototype {
             //Upgrade the controller
             else
                 creep.upgradeController(r);
+            return 0;
         }
+        return -1;
     }
     /**
      * This method, creepBuild makes the creep build the nearest construction
@@ -863,7 +883,11 @@ class Creep_Prototype {
             }
             else
                 creep.memory.building = undefined;
+            //Looks like a success
+            return 0;
         }
+        //Something went wrong
+        return -1;
     }
     /**
      * creepMelee makes the creep attack the given victim. It uses moveTo without
@@ -917,15 +941,19 @@ class Creep_Prototype {
                 //We need to find a new construction site
                 creep.memory.repair = undefined;
             }
+            return 0;
         }
+        return -1;
     }
-    static creepWall(creep) {
+    static creepReinforce(creep) {
         var threashold = 3;
         for (var i = 1; i <= creep.room.controller.level; i++)
             threashold = threashold * 10;
         creep.say('⚙ 🏛', publicDebug);
         if (creep.memory.reinforce == undefined) {
-            var w = creep.pos.findClosestByRange(FIND_STRUCTURES, { filter: (c) => (c.structureType == STRUCTURE_RAMPART || c.structureType == STRUCTURE_WALL) && c.hits < threashold });
+            var w = creep.pos.findClosestByRange(FIND_STRUCTURES, { filter: (c) => (c.structureType == STRUCTURE_RAMPART || c.structureType == STRUCTURE_WALL) && c.hits < (threashold / 5) });
+            if (w == null)
+                w = creep.pos.findClosestByRange(FIND_STRUCTURES, { filter: (c) => (c.structureType == STRUCTURE_RAMPART || c.structureType == STRUCTURE_WALL) && c.hits < threashold });
             if (w != null)
                 creep.memory.reinforce = w.id;
         }
@@ -939,9 +967,14 @@ class Creep_Prototype {
             }
             else
                 creep.memory.reinforce = undefined;
+            return 0;
         }
+        return -1;
     }
-    static run(creep, goal) {
+    static run(creep) {
+        //If goal in creep memory was undefined we can upgrade for now
+        if (creep.memory.goal == undefined)
+            creep.memory.goal = Goals.UPGRADE;
         //Check if we're full on energy
         if (creep.carry.energy == creep.carryCapacity)
             creep.memory.working = true;
@@ -950,25 +983,31 @@ class Creep_Prototype {
             creep.memory.working = false;
         //Lets Spend some energy
         if (creep.memory.working) {
-            //We should otherwise fill up buildings
-            switch (goal) {
+            //Switch through possible goals and our actions based on them
+            switch (creep.memory.goal) {
+                //If goal is undefined... it shouldn't be make a confused face and hope math fixes it
                 case undefined:
-                    creep.say("UNDEF G");
+                    creep.say("⁉");
                     return;
-                case "Fill":
-                    Creep_Prototype.creepFill(creep);
+                case Goals.BUILD:
+                    if (Creep_Prototype.creepBuild(creep) != 0)
+                        creep.memory.goal = undefined;
                     break;
-                case "Fix":
-                    Creep_Prototype.creepRepair(creep);
+                case Goals.FILL:
+                    if (Creep_Prototype.creepFill(creep) != 0)
+                        creep.memory.goal = undefined;
                     break;
-                case "Build":
-                    Creep_Prototype.creepBuild(creep);
+                case Goals.FIX:
+                    if (Creep_Prototype.creepRepair(creep) != 0)
+                        creep.memory.goal = undefined;
                     break;
-                case "Upgrade":
-                    Creep_Prototype.creepUpgrade(creep);
+                case Goals.REINFORCE:
+                    if (Creep_Prototype.creepReinforce(creep) != 0)
+                        creep.memory.goal = undefined;
                     break;
-                case "Wall":
-                    Creep_Prototype.creepWall(creep);
+                case Goals.UPGRADE:
+                    if (Creep_Prototype.creepUpgrade(creep) != 0)
+                        creep.memory.goal = undefined;
                     break;
             }
         }
@@ -1086,17 +1125,9 @@ class CreepManager {
             //If the creep has a defined role run that role's AI
             if (creep.memory.role != undefined)
                 params[creep.memory.role].run(creep);
-            //Otherwise run the general code passing through the colony's goals
-            else {
-                var a = undefined;
-                for (var i = 0; i < exports.colonies.length; i++)
-                    if (exports.colonies[i].home.name == creep.memory.room) {
-                        a = exports.colonies[i];
-                        break;
-                    }
-                if (a != undefined)
-                    Creep_Prototype.run(creep, a.goals.pop());
-            }
+            //Run the creep generalized AI
+            else
+                Creep_Prototype.run(creep);
             //Check the creep's life
             Creep_Prototype.checkLife(creep);
         }
@@ -1423,20 +1454,41 @@ function spawn(currentRoom) {
     }
 }
 
+/**
+ * The visuals manager draws the visual results of algorithms and other useful
+ * information to the screen. What is drawn is determined by game flags.
+ */
 class VisualsManager {
-    run(roomName, trans, flood, minCut = undefined) {
+    /**
+     * run does some basic logic to determine what should be drawn to screen
+     * before calling the helper methods to draw the information to the screen.
+     * @param roomName - The room which is being drawn to
+     * @param distanceTransform - The distance transform algorithm result
+     * @param floodFill - The flood fill algorithm result
+     */
+    run(roomName, distanceTransform = undefined, floodFill = undefined) {
+        //If the DistanceTransform flag is down call the drawing function
         if (Game.flags["DistanceTransform"] != undefined)
-            this.distanceTransform(trans, roomName);
-        if (Game.flags["FloodFill"] != undefined)
-            this.floodFill(flood, roomName);
-        if (Game.flags["MinCut"] != undefined)
-            this.minCut(minCut, roomName);
+            this.distanceTransform(distanceTransform, roomName);
+        //If the FloodFill flag is down call the drawing function
+        else if (Game.flags["FloodFill"] != undefined)
+            this.floodFill(floodFill, roomName);
     }
-    distanceTransform(trans, roomName) {
-        if (trans != undefined)
-            for (var i = 0; i < 50; i++) {
+    /**
+     * Draws the distance transform algorithm result to the given room.
+     * @param distanceTransform - The distance transform algorithm result
+     * @param roomName - The room the data is being drawn to
+     */
+    distanceTransform(distanceTransform, roomName) {
+        //If the transform is defined, iterate through all the elements
+        if (distanceTransform != undefined)
+            for (var i = 0; i < 50; i++)
                 for (var j = 0; j < 50; j++) {
-                    switch (trans[i][j]) {
+                    //Depending on the value of the cell we want to draw a different color cirlce here
+                    switch (distanceTransform[i][j]) {
+                        //Draw a gradient of colors depending on the cell's value. Nothing is drawn for walls/boundaries
+                        // -1 is only used in the non iterative solution to the distance transform. The gradient
+                        // used here is the far right row of web safe colors on this website https://htmlcolors.com/color-chart
                         case -1:
                             new RoomVisual(roomName).circle(j, i, { fill: "#607D8B", opacity: 80 });
                             break;
@@ -1488,33 +1540,28 @@ class VisualsManager {
                             break;
                     }
                 }
-            }
     }
-    floodFill(flood, roomName) {
-        if (flood != undefined)
+    /**
+     * Draws the flood fill algorithm result to the room given.
+     * @param floodFill - The flood fill algorithm result
+     * @param roomName - The room being drawn to
+     */
+    floodFill(floodFill, roomName) {
+        //If flood fill is defined iterate through cells
+        if (floodFill != undefined)
             for (var i = 0; i < 50; i++)
                 for (var j = 0; j < 50; j++) {
-                    switch (flood[i][j]) {
+                    //Make a different circle depending on the drawing
+                    switch (floodFill[i][j]) {
+                        //Walls have no color
                         case 0: break;
+                        //Infected are green
                         case -1:
                             new RoomVisual(roomName).circle(j, i, { fill: "#388E3C", opacity: 80 });
                             break;
+                        //Not infected a nice blue color
                         case 1:
                             new RoomVisual(roomName).circle(j, i, { fill: "#303F9F", opacity: 80 });
-                            break;
-                    }
-                }
-    }
-    minCut(minCut, roomName) {
-        if (minCut != undefined)
-            for (var i = 0; i < 50; i++)
-                for (var j = 0; j < 50; j++) {
-                    switch (minCut[i][j]) {
-                        case 2:
-                            new RoomVisual(roomName).circle(j, i, { fill: "#004D40", opacity: 80 });
-                            break;
-                        case 3:
-                            new RoomVisual(roomName).circle(j, i, { fill: "#558B2F", opacity: 80 });
                             break;
                     }
                 }
@@ -2236,7 +2283,6 @@ var p = {};
 class Colony {
     //Constructors
     constructor(r) {
-        this.goals = [];
         this.home = r;
         this.era = -1;
         this.homePrototype = new struc_Room(r.name);
@@ -2310,8 +2356,7 @@ class Colony {
      * which are currently needed.
      */
     checkGoals() {
-        //Reset the goals
-        this.goals = [];
+        var goal = [];
         //Search for a set of objects
         var threashold = 3;
         for (var i = 1; i <= this.home.controller.level; i++)
@@ -2321,15 +2366,20 @@ class Colony {
         var c = this.home.find(FIND_CONSTRUCTION_SITES);
         // var d:Resource[] | null = this.home.find(FIND_DROPPED_RESOURCES, {filter: {resourceType: RESOURCE_ENERGY}});
         var s = this.home.find(FIND_MY_STRUCTURES, { filter: (s) => (s.structureType == STRUCTURE_SPAWN || s.structureType == STRUCTURE_EXTENSION || s.structureType == STRUCTURE_TOWER) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0 }); //O(7 + 3n)
-        this.goals.push("Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade", "Upgrade");
-        if (w != null && w.length > 0)
-            this.goals.push("Wall");
-        if (r != null && r.length > 0)
-            this.goals.push("Fix", "Fix");
-        if (c != null && c.length > 0)
-            this.goals.push("Build", "Build", "Build", "Build");
-        if (s != null && s.length > 0)
-            this.goals.push("Fill", "Fill", "Fill", "Fill", "Fill");
+        //Check the goals that need to be taken
+        if (w != null && w.length > 0 && Game.time % 500 == 0)
+            goal.push(Goals.REINFORCE);
+        if (r != null && r.length > 0 && Game.time % 500 == 0)
+            goal.push(Goals.FIX);
+        if (c != null && c.length > 0 && Game.time % 250 == 0)
+            goal.push(Goals.BUILD);
+        if (s != null && s.length > 0 && Game.time % 25 == 0)
+            goal.push(Goals.FILL);
+        //Assign the goals to the creeps ^-^
+        for (var i = 0; i < goal.length; i++)
+            for (let c in Game.creeps)
+                if (Game.creeps[c].room.name == this.home.name && (Game.creeps[c].memory.goal == undefined || Game.creeps[c].memory.goal == Goals.UPGRADE))
+                    Game.creeps[c].memory.goal = goal.pop();
     }
 }
 class Run_Colony extends template {
@@ -2410,12 +2460,11 @@ class Calculate_FloodFill extends template {
 var queue = new Queue();
 //A rooms object holding all the rooms.
 var rooms;
-//A stats object which handles the collection of stats
 new StatsManager();
 //A colony array holding all of the colonies
 exports.colonies = void 0;
 // @ts-ignore, javascript shenanigans, ignore it typescript
-global.StatsManager = module.exports = StatsManager;
+global.Stats = module.exports = StatsManager;
 // @ts-ignore
 global.queue = module.exports = queue;
 /**

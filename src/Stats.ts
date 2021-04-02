@@ -3,6 +3,7 @@
  * handles tracking, logging, and printing of script preformence.
  */
 export class StatsManager {
+
   //Constructor
  /**
   * Runs setup for the StatsManager so it can run without issue.
@@ -59,6 +60,8 @@ export class StatsManager {
     console.log("Average CPU Usage: " + Memory.cpuAverage);
     //Print the peak cpu used
     console.log("Peak CPU Usage: " + Memory.cpuPeak);
+    //Report everything was successful
+    return 0;
   }
  /**
   * Collects all the stats for cpu this tick.
