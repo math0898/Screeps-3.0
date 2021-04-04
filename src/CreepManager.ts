@@ -4,16 +4,18 @@ import { Queue } from "Queue";
 import { Creep_Role, Creep_Prototype } from "CreepTypes/CreepRole";
 import { Scout } from "CreepTypes/Scout";
 import { Defender } from "CreepTypes/Defender";
+import { Extractor } from "CreepTypes/Extractor";
 //Array indexed by a string which corrosponds to creep role object
 interface IDictionary { [index: string]: Creep_Role; }
 var params = {} as IDictionary;
 params["Scout"] = new Scout();
 params["Defender"] = new Defender();
+params["Extractor"] = new Extractor();
 /**
  * This is the creep manager class. It is mostly static and handles the
  * management of creeps including their AI and memory.
  */
-export class CreepManager{
+export class CreepManager {
   //Variables
 
   //Constructors

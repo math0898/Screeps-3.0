@@ -323,7 +323,7 @@ export abstract class Creep_Prototype {
     for (var i = 1; i <= creep.room.controller!.level; i++) threashold = threashold * 10;
     if(debug) creep.say('⚙ 🏛', publicDebug);
     if (creep.memory.reinforce == undefined){
-      var w:Structure | null = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (c) => (c.structureType == STRUCTURE_RAMPART || c.structureType == STRUCTURE_WALL) && c.hits < (threashold/5)});
+      var w:Structure | null = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (c) => (c.structureType == STRUCTURE_RAMPART || c.structureType == STRUCTURE_WALL) && c.hits < (threashold/20)});
       if (w == null) w = creep.pos.findClosestByRange(FIND_STRUCTURES, {filter: (c) => (c.structureType == STRUCTURE_RAMPART || c.structureType == STRUCTURE_WALL) && c.hits < threashold});
       if (w != null) creep.memory.reinforce = w.id;
     }

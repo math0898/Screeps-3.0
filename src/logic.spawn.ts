@@ -103,6 +103,9 @@ function spawnBigBoiHarvester(capacity:number, spawn:StructureSpawn){
   //Spawn the creep, Increment the harvester count in the room if successful
   if(spawn.spawnCreep(body, name, {memory: {room: spawn.room.name}}) == OK) spawn.room.memory.counts.Worker++;
 }
+function extractor(spawn:StructureSpawn){
+  if(spawn.spawnCreep([WORK,WORK,WORK,WORK,WORK,WORK,WORK,WORK,WORK,WORK,CARRY,CARRY,CARRY,CARRY,CARRY,MOVE,MOVE,MOVE,MOVE],'[' + spawn.room.name + '] Extractor ' + Game.time ,{memory: {room: spawn.room.name, role: "Extractor"}}) == OK) spawn.room.memory.counts.Extractor++;
+}
 /**
  * Spawns a scout creep at the given spawn and at the level given.
  * O(c) --> runs in constant time
@@ -169,6 +172,7 @@ export function spawn(currentRoom:Room){
         }
         //Check if a harvester creep needs to be spawned, this includes recovery if all creeps die
         if(currentRoom.memory.counts.Worker < 1) spawnHarvester(capacity, spawn);
+        else if (currentRoom.memory.counts.Extractor < 1 && currentRoom.find(FIND_MINERALS)[0].mineralAmount > 0) extractor(spawn);
         //Check if a carrier creep needs to be spawned, 2 per miner
         // else if(currentRoom.memory.counts.Carrier < currentRoom.memory.counts.Miner * 2) spawnCarrier(capacity, spawn);
         //Check if a miner creep needs to be spawned, 1 per source

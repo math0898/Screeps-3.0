@@ -10,9 +10,6 @@ export class Scout extends Creep_Prototype implements Creep_Role {
   //Variables
   name:string = "Scout";
 
-  //Constructor
-  constructor(){super();}
-
   //Real Methods
   run(creep:Creep){
     Scout.run(creep);

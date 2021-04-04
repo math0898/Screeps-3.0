@@ -18,6 +18,8 @@ interface CreepMemory {
   reinforce?:string;
   room: string;
   goal?: string;
+  mineral?: string;
+
 }
 
 interface Memory {

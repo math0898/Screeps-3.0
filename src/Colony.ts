@@ -77,6 +77,7 @@ export class Colony{
     this.home.memory.counts["Worker"] = 0;
     this.home.memory.counts["RepairBot"] = 0;
     this.home.memory.counts["Scout"] = 0;
+    this.home.memory.counts["Extractor"] = 0;
 
     for(let c in Game.creeps){
       var creep:Creep = Game.creeps[c];
@@ -105,7 +106,7 @@ export class Colony{
      if (c != null && c.length > 0 && Game.time % 250 == 0) goal.push(Goals.BUILD);
      if (s != null && s.length > 0 && Game.time % 25 == 0) goal.push(Goals.FILL);
      //Assign the goals to the creeps ^-^
-     for (var i = 0; i < goal.length; i++) for (let c in Game.creeps) if (Game.creeps[c].room.name == this.home.name && (Game.creeps[c].memory.goal == undefined || Game.creeps[c].memory.goal == Goals.UPGRADE)) Game.creeps[c].memory.goal = goal.pop();
+     for (var i = 0; i < goal.length; i++) for (let c in Game.creeps) if (Game.creeps[c].room.name == this.home.name && Game.creeps[c].memory.role == undefined && (Game.creeps[c].memory.goal == undefined || Game.creeps[c].memory.goal == Goals.UPGRADE)) Game.creeps[c].memory.goal = goal.pop();
    }
 }
 

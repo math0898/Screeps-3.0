@@ -951,7 +951,7 @@ class Creep_Prototype {
             threashold = threashold * 10;
         creep.say('⚙ 🏛', publicDebug);
         if (creep.memory.reinforce == undefined) {
-            var w = creep.pos.findClosestByRange(FIND_STRUCTURES, { filter: (c) => (c.structureType == STRUCTURE_RAMPART || c.structureType == STRUCTURE_WALL) && c.hits < (threashold / 5) });
+            var w = creep.pos.findClosestByRange(FIND_STRUCTURES, { filter: (c) => (c.structureType == STRUCTURE_RAMPART || c.structureType == STRUCTURE_WALL) && c.hits < (threashold / 20) });
             if (w == null)
                 w = creep.pos.findClosestByRange(FIND_STRUCTURES, { filter: (c) => (c.structureType == STRUCTURE_RAMPART || c.structureType == STRUCTURE_WALL) && c.hits < threashold });
             if (w != null)
@@ -1030,9 +1030,8 @@ class Creep_Prototype {
  *instead of storing them in cache as an object.
  */
 class Scout extends Creep_Prototype {
-    //Constructor
     constructor() {
-        super();
+        super(...arguments);
         //Variables
         this.name = "Scout";
     }
@@ -1083,10 +1082,68 @@ class Defender extends Creep_Prototype {
     }
 }
 
+//Import the creepRole interface
+/**
+ * This is the class for the Carrier creep. The primary role of the carrier
+ * creep is to move resources around the base and into storage or other devices
+ * that could use them.
+ */
+class Extractor extends Creep_Prototype {
+    constructor() {
+        super(...arguments);
+        //Variables
+        this.name = "Extractor";
+    }
+    //Real Methods
+    run(creep) {
+        Extractor.run(creep);
+    }
+    static run(creep) {
+        if (creep.memory.working == undefined)
+            creep.memory.working = false;
+        else if (creep.store.getFreeCapacity() == 0)
+            creep.memory.working = true;
+        else if (creep.store.getUsedCapacity() == 0)
+            creep.memory.working = false;
+        if (creep.memory.working) {
+            creep.say("🛢", true);
+            var s = undefined;
+            for (var i = 0; i < RESOURCES_ALL.length; i++)
+                if (creep.store.getUsedCapacity(RESOURCES_ALL[i]) > 0) {
+                    s = RESOURCES_ALL[i];
+                    break;
+                }
+            if (creep.room.storage != undefined && s != undefined)
+                if (creep.transfer(creep.room.storage, s) == ERR_NOT_IN_RANGE)
+                    this.creepOptimizedMove(creep, creep.room.storage.pos);
+        }
+        else {
+            creep.say("🏗", true);
+            // if (creep.memory.mineral = undefined) {
+            //   var h = creep.pos.findClosestByPath(FIND_MINERALS);
+            //   if (h != null) creep.memory.mineral = h.id;
+            // }
+            // if (creep.memory.mineral != undefined) {
+            var m = creep.pos.findClosestByPath(FIND_MINERALS);
+            if (m != null) {
+                if (creep.harvest(m) == ERR_NOT_IN_RANGE)
+                    creep.moveTo(m.pos);
+                else if (creep.harvest(m) == ERR_NOT_FOUND)
+                    creep.memory.role = undefined;
+                else if (creep.harvest(m) == ERR_NOT_ENOUGH_RESOURCES)
+                    creep.memory.working = true;
+            }
+            // else creep.memory.mineral = undefined;
+            // }
+        }
+    }
+}
+
 //Import the queue so we can request tasks, priority so we can set priority
 var params = {};
 params["Scout"] = new Scout();
 params["Defender"] = new Defender();
+params["Extractor"] = new Extractor();
 /**
  * This is the creep manager class. It is mostly static and handles the
  * management of creeps including their AI and memory.
@@ -1356,6 +1413,10 @@ function spawnBigBoiHarvester(capacity, spawn) {
     if (spawn.spawnCreep(body, name, { memory: { room: spawn.room.name } }) == OK)
         spawn.room.memory.counts.Worker++;
 }
+function extractor(spawn) {
+    if (spawn.spawnCreep([WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE], '[' + spawn.room.name + '] Extractor ' + Game.time, { memory: { room: spawn.room.name, role: "Extractor" } }) == OK)
+        spawn.room.memory.counts.Extractor++;
+}
 /**
  * Spawns a scout creep at the given spawn and at the level given.
  * O(c) --> runs in constant time
@@ -1433,6 +1494,8 @@ function spawn(currentRoom) {
             //Check if a harvester creep needs to be spawned, this includes recovery if all creeps die
             if (currentRoom.memory.counts.Worker < 1)
                 spawnHarvester(capacity, spawn);
+            else if (currentRoom.memory.counts.Extractor < 1 && currentRoom.find(FIND_MINERALS)[0].mineralAmount > 0)
+                extractor(spawn);
             //Check if a carrier creep needs to be spawned, 2 per miner
             // else if(currentRoom.memory.counts.Carrier < currentRoom.memory.counts.Miner * 2) spawnCarrier(capacity, spawn);
             //Check if a miner creep needs to be spawned, 1 per source
@@ -2341,6 +2404,7 @@ class Colony {
         this.home.memory.counts["Worker"] = 0;
         this.home.memory.counts["RepairBot"] = 0;
         this.home.memory.counts["Scout"] = 0;
+        this.home.memory.counts["Extractor"] = 0;
         for (let c in Game.creeps) {
             var creep = Game.creeps[c];
             if (creep.memory.room != this.home.name)
@@ -2378,7 +2442,7 @@ class Colony {
         //Assign the goals to the creeps ^-^
         for (var i = 0; i < goal.length; i++)
             for (let c in Game.creeps)
-                if (Game.creeps[c].room.name == this.home.name && (Game.creeps[c].memory.goal == undefined || Game.creeps[c].memory.goal == Goals.UPGRADE))
+                if (Game.creeps[c].room.name == this.home.name && Game.creeps[c].memory.role == undefined && (Game.creeps[c].memory.goal == undefined || Game.creeps[c].memory.goal == Goals.UPGRADE))
                     Game.creeps[c].memory.goal = goal.pop();
     }
 }
