@@ -11,7 +11,8 @@ var publicDebug:boolean = true;
  * colony.
  */
 export enum Goals {FILL = "Fill", FIX = "Fix", BUILD = "Build",
- UPGRADE = "Upgrade", REINFORCE = "Reinforce"}
+ UPGRADE = "Upgrade", REINFORCE = "Reinforce", STORE = "Store",
+ TRADE = "Trade"}
 /**
  * This is an abstract class which holds of lot of useful utility functions for
  * creep roles in general. This class includes an optimized movement method, and
@@ -97,8 +98,10 @@ export abstract class Creep_Prototype {
     //Quickly make some basic checks that we can actually move
     if(path != undefined && step != undefined) {
       //Move the creep and increase the step
-      creep.move(path[step].direction);
-      creep.memory.pathStep!++;
+      if (path[step] != undefined) {
+        creep.move(path[step].direction);
+        creep.memory.pathStep!++;
+      }
     }
   }
   /**
@@ -155,6 +158,10 @@ export abstract class Creep_Prototype {
       var d:Resource | null = creep.pos.findClosestByPath(FIND_DROPPED_RESOURCES, {filter: {resourceType: filter}});
       //Set dropped resoucres if d is not null
       if (d != null) creep.memory.droppedResource = d.id;
+      else {
+        const t:Tombstone | null = creep.pos.findClosestByPath(FIND_TOMBSTONES);
+        if (t != null) if (t.store.getUsedCapacity(RESOURCE_ENERGY) > 0) creep.memory.tombstone = t.id;
+      }
     }
     //Make sure dropped is defined before moving on
     if (creep.memory.droppedResource != undefined) { //O(3) -> O(7 + n)
@@ -166,6 +173,19 @@ export abstract class Creep_Prototype {
         if (!(creep.pos.isNearTo(d))) this.creepOptimizedMove(creep, d.pos);
         //Pickup the resource
         else creep.pickup(d);
+      } else {
+        //We didn't get anything back from the Game.getObjectById so reset the id
+        creep.memory.droppedResource = undefined;
+      }
+    } else if (creep.memory.tombstone != undefined){
+      //Read memory
+      var t:Tombstone | null = Game.getObjectById(creep.memory.tombstone);
+      //Check if the resource exists
+      if (t != null) {
+        //Check if we're near the resource and move to it if we aren't
+        if (!(creep.pos.isNearTo(t))) this.creepOptimizedMove(creep, t.pos);
+        //Pickup the resource
+        else creep.withdraw(t, RESOURCE_ENERGY);
       } else {
         //We didn't get anything back from the Game.getObjectById so reset the id
         creep.memory.droppedResource = undefined;
@@ -184,6 +204,11 @@ export abstract class Creep_Prototype {
    * one.
    */
   static creepHarvest(creep:Creep){
+    //Check if the creep has any work parts
+    for (var i = 0; i <= creep.body.length; i++) {
+      if (i == creep.body.length) return -3;
+      if(creep.body[i].type == WORK) break;
+    }
     //Say we're harvesting
     if(debug) creep.say('⛏', publicDebug);
     //check if sources is undefined
@@ -337,13 +362,41 @@ export abstract class Creep_Prototype {
     }
     return -1;
   }
+  static creepStore(creep:Creep) {
+    if (debug) creep.say('⚙ 🛢', publicDebug);
+    var s: ResourceConstant | undefined = undefined;
+    for (var i = 0; i < RESOURCES_ALL.length; i++) if (creep.store.getUsedCapacity(RESOURCES_ALL[i]) > 0) {s = RESOURCES_ALL[i]; break;}
+    if (creep.room.storage != undefined && s != undefined) if (creep.transfer(creep.room.storage, s) == ERR_NOT_IN_RANGE) this.creepOptimizedMove(creep, creep.room.storage.pos);
+    return 0;
+  }
+  static trader(creep:Creep) {
+    if (debug) creep.say('🏙', publicDebug);
+    if (creep.memory.working) {
+      for (var i = 0; i < RESOURCES_ALL.length; i++) {
+        if (creep.store.getUsedCapacity(RESOURCES_ALL[i]) > 0) {
+          if (creep.transfer(creep.room.terminal!, RESOURCES_ALL[i]) == ERR_NOT_IN_RANGE) creep.moveTo(creep.room.terminal!);
+        }
+      }
+    } else {
+      if (creep.room.terminal!.store.getUsedCapacity() <= 10000) {
+        for (var i = 0; i < RESOURCES_ALL.length; i++) {
+          if (creep.room.storage!.store.getUsedCapacity(RESOURCES_ALL[i]) > 1) {
+            if (creep.withdraw(creep.room.storage!, RESOURCES_ALL[i], Math.min(creep.store.getFreeCapacity(), creep.room.storage!.store.getUsedCapacity(RESOURCES_ALL[i]) - 1)) == ERR_NOT_IN_RANGE) creep.moveTo(creep.room.storage!);
+          }
+        }
+      }
+    }
+  }
   static run(creep:Creep){
     //If goal in creep memory was undefined we can upgrade for now
     if (creep.memory.goal == undefined) creep.memory.goal = Goals.UPGRADE;
     //Check if we're full on energy
-    if (creep.carry.energy == creep.carryCapacity) creep.memory.working = true;
+    if (creep.store.getFreeCapacity() == 0) creep.memory.working = true;
     //If we're out of energy obtain more
-    else if (creep.carry.energy == 0 || creep.memory.working == undefined) creep.memory.working = false;
+    else if (creep.store.getUsedCapacity() == 0 || creep.memory.working == undefined) creep.memory.working = false;
+    if (creep.memory.goal == Goals.TRADE) {
+      this.trader(creep);
+    }
     //Lets Spend some energy
     if(creep.memory.working) {
       //Switch through possible goals and our actions based on them
@@ -365,14 +418,16 @@ export abstract class Creep_Prototype {
         case Goals.UPGRADE:
           if (Creep_Prototype.creepUpgrade(creep) != 0) creep.memory.goal = undefined;
           break;
+        case Goals.STORE:
+          if (Creep_Prototype.creepStore(creep) != 0) creep.memory.goal = undefined;
+          break;
       }
     }
     //Lets get some energy
     else {
       //We're mining
-      if(debug) creep.say('⛏', true);
-      //Got harvest
-      if(Creep_Prototype.creepHarvest(creep) != 0) Creep_Prototype.creepPickup(creep);
+      if (debug) creep.say('⛏', publicDebug);
+      if (Creep_Prototype.creepHarvest(creep) != 0) Creep_Prototype.creepPickup(creep);
     }
   }
 }

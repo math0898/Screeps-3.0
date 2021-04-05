@@ -19,7 +19,7 @@ interface CreepMemory {
   room: string;
   goal?: string;
   mineral?: string;
-
+  tombstone?:string;
 }
 
 interface Memory {

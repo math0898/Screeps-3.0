@@ -10,8 +10,9 @@ import { StatsManager} from "Stats";
 //Import the tasks
 import { init_Rooms, print_Rooms, update_Rooms } from "Room";
 import { print_Stats, collect_Stats} from "Stats";
-import { run_CreepManager, creepAI_CreepManager } from "CreepManager";
+import { run_CreepManager, creepAI_CreepManager, CreepManager } from "CreepManager";
 import { Colony, Run_Colony, Run_Census, Setup_Goals } from "Colony";
+import { MarketManipulator } from "MarketManipulator";
 
 //A queue object holding the items which have been queue'd to complete.
 var queue: Queue = new Queue();
@@ -25,6 +26,10 @@ export var colonies: Colony[];
 global.Stats = module.exports = StatsManager;
 // @ts-ignore
 global.queue = module.exports = queue;
+// @ts-ignore
+global.CreepManager = module.exports = CreepManager;
+// @ts-ignore
+global.MarketManager = module.exports = MarketManipulator;
 
 /**
  * This is the main loop for the program. Expect clean concise code, anything

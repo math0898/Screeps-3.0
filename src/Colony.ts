@@ -4,6 +4,7 @@ import { task, template } from "task";
 import { struc_Room } from "Room";
 //Import the spawn manager
 import { SpawnManager } from "SpawnManager";
+import { CreepManager, Job } from "CreepManager";
 import { spawn } from "logic.spawn";
 import { Queue } from "Queue";
 import { VisualsManager } from "VisualsManager";
@@ -91,23 +92,22 @@ export class Colony{
    * which are currently needed.
    */
    checkGoals(){
-     var goal:Goals[] = [];
      //Search for a set of objects
      var threashold:number = 3;
      for (var i = 1; i <= this.home.controller!.level; i++) threashold = threashold * 10;
-     var w:Structure[] | null = this.home.find(FIND_STRUCTURES, {filter: (c) => (c.structureType == STRUCTURE_RAMPART || c.structureType == STRUCTURE_WALL) && c.hits < threashold});
-     var r:Structure[] | null = this.home.find(FIND_STRUCTURES, {filter: (c) => c.hits < c.hitsMax && ( c.structureType != STRUCTURE_WALL && c.structureType != STRUCTURE_RAMPART)});
-     var c:ConstructionSite[] | null = this.home.find(FIND_CONSTRUCTION_SITES);
-     // var d:Resource[] | null = this.home.find(FIND_DROPPED_RESOURCES, {filter: {resourceType: RESOURCE_ENERGY}});
-     var s:Structure[] | null = this.home.find(FIND_MY_STRUCTURES, {filter: (s) => (s.structureType == STRUCTURE_SPAWN || s.structureType == STRUCTURE_EXTENSION || s.structureType == STRUCTURE_TOWER) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0}); //O(7 + 3n)
+     const w:Structure[] | null = this.home.find(FIND_STRUCTURES, {filter: (c) => (c.structureType == STRUCTURE_RAMPART || c.structureType == STRUCTURE_WALL) && c.hits < threashold});
+     const r:Structure[] | null = this.home.find(FIND_STRUCTURES, {filter: (c) => c.hits < c.hitsMax && ( c.structureType != STRUCTURE_WALL && c.structureType != STRUCTURE_RAMPART)});
+     const c:ConstructionSite[] | null = this.home.find(FIND_CONSTRUCTION_SITES);
+     const d:Source[] | null = this.home.find(FIND_SOURCES_ACTIVE);
+     const s:Structure[] | null = this.home.find(FIND_MY_STRUCTURES, {filter: (s) => (s.structureType == STRUCTURE_SPAWN || s.structureType == STRUCTURE_EXTENSION || s.structureType == STRUCTURE_TOWER) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0}); //O(7 + 3n)
+     if (this.home.terminal != undefined && Game.time % 1500 == 0) if (this.home.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < 10000) CreepManager.declareJob(new Job(Goals.TRADE, this.home.name));
      //Check the goals that need to be taken
-     if (w != null && w.length > 0 && Game.time % 500 == 0) goal.push(Goals.REINFORCE);
-     if (r != null && r.length > 0 && Game.time % 500 == 0) goal.push(Goals.FIX);
-     if (c != null && c.length > 0 && Game.time % 250 == 0) goal.push(Goals.BUILD);
-     if (s != null && s.length > 0 && Game.time % 25 == 0) goal.push(Goals.FILL);
-     //Assign the goals to the creeps ^-^
-     for (var i = 0; i < goal.length; i++) for (let c in Game.creeps) if (Game.creeps[c].room.name == this.home.name && Game.creeps[c].memory.role == undefined && (Game.creeps[c].memory.goal == undefined || Game.creeps[c].memory.goal == Goals.UPGRADE)) Game.creeps[c].memory.goal = goal.pop();
-   }
+     if (w != null && w.length > 0 && Game.time % 500 == 0) CreepManager.declareJob(new Job(Goals.REINFORCE, this.home.name));
+     if (r != null && r.length > 0 && Game.time % 500 == 0) CreepManager.declareJob(new Job(Goals.FIX, this.home.name));
+     if (c != null && c.length > 0 && Game.time % 250 == 0) CreepManager.declareJob(new Job(Goals.BUILD, this.home.name));
+     if (s != null && s.length > 0 && Game.time % 25 == 0) CreepManager.declareJob(new Job(Goals.FILL, this.home.name));
+     if (d != null && d.length > 0 && Game.time % 500 == 0) CreepManager.declareJob(new Job(Goals.STORE, this.home.name));
+    }
 }
 
 export class Run_Colony extends template implements task {

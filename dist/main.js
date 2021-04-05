@@ -600,6 +600,8 @@ var Goals;
     Goals["BUILD"] = "Build";
     Goals["UPGRADE"] = "Upgrade";
     Goals["REINFORCE"] = "Reinforce";
+    Goals["STORE"] = "Store";
+    Goals["TRADE"] = "Trade";
 })(Goals || (Goals = {}));
 /**
  * This is an abstract class which holds of lot of useful utility functions for
@@ -695,8 +697,10 @@ class Creep_Prototype {
         //Quickly make some basic checks that we can actually move
         if (path != undefined && step != undefined) {
             //Move the creep and increase the step
-            creep.move(path[step].direction);
-            creep.memory.pathStep++;
+            if (path[step] != undefined) {
+                creep.move(path[step].direction);
+                creep.memory.pathStep++;
+            }
         }
     }
     /**
@@ -759,6 +763,12 @@ class Creep_Prototype {
             //Set dropped resoucres if d is not null
             if (d != null)
                 creep.memory.droppedResource = d.id;
+            else {
+                const t = creep.pos.findClosestByPath(FIND_TOMBSTONES);
+                if (t != null)
+                    if (t.store.getUsedCapacity(RESOURCE_ENERGY) > 0)
+                        creep.memory.tombstone = t.id;
+            }
         }
         //Make sure dropped is defined before moving on
         if (creep.memory.droppedResource != undefined) { //O(3) -> O(7 + n)
@@ -778,6 +788,23 @@ class Creep_Prototype {
                 creep.memory.droppedResource = undefined;
             }
         }
+        else if (creep.memory.tombstone != undefined) {
+            //Read memory
+            var t = Game.getObjectById(creep.memory.tombstone);
+            //Check if the resource exists
+            if (t != null) {
+                //Check if we're near the resource and move to it if we aren't
+                if (!(creep.pos.isNearTo(t)))
+                    this.creepOptimizedMove(creep, t.pos);
+                //Pickup the resource
+                else
+                    creep.withdraw(t, RESOURCE_ENERGY);
+            }
+            else {
+                //We didn't get anything back from the Game.getObjectById so reset the id
+                creep.memory.droppedResource = undefined;
+            }
+        }
     }
     /**
      * creepHarvest navigates the creep to the nearest source and makes it mine
@@ -791,6 +818,13 @@ class Creep_Prototype {
      * one.
      */
     static creepHarvest(creep) {
+        //Check if the creep has any work parts
+        for (var i = 0; i <= creep.body.length; i++) {
+            if (i == creep.body.length)
+                return -3;
+            if (creep.body[i].type == WORK)
+                break;
+        }
         //Say we're harvesting
         creep.say('⛏', publicDebug);
         //check if sources is undefined
@@ -971,16 +1005,53 @@ class Creep_Prototype {
         }
         return -1;
     }
+    static creepStore(creep) {
+        creep.say('⚙ 🛢', publicDebug);
+        var s = undefined;
+        for (var i = 0; i < RESOURCES_ALL.length; i++)
+            if (creep.store.getUsedCapacity(RESOURCES_ALL[i]) > 0) {
+                s = RESOURCES_ALL[i];
+                break;
+            }
+        if (creep.room.storage != undefined && s != undefined)
+            if (creep.transfer(creep.room.storage, s) == ERR_NOT_IN_RANGE)
+                this.creepOptimizedMove(creep, creep.room.storage.pos);
+        return 0;
+    }
+    static trader(creep) {
+        creep.say('🏙', publicDebug);
+        if (creep.memory.working) {
+            for (var i = 0; i < RESOURCES_ALL.length; i++) {
+                if (creep.store.getUsedCapacity(RESOURCES_ALL[i]) > 0) {
+                    if (creep.transfer(creep.room.terminal, RESOURCES_ALL[i]) == ERR_NOT_IN_RANGE)
+                        creep.moveTo(creep.room.terminal);
+                }
+            }
+        }
+        else {
+            if (creep.room.terminal.store.getUsedCapacity() <= 10000) {
+                for (var i = 0; i < RESOURCES_ALL.length; i++) {
+                    if (creep.room.storage.store.getUsedCapacity(RESOURCES_ALL[i]) > 1) {
+                        if (creep.withdraw(creep.room.storage, RESOURCES_ALL[i], Math.min(creep.store.getFreeCapacity(), creep.room.storage.store.getUsedCapacity(RESOURCES_ALL[i]) - 1)) == ERR_NOT_IN_RANGE)
+                            creep.moveTo(creep.room.storage);
+                    }
+                }
+            }
+        }
+    }
     static run(creep) {
         //If goal in creep memory was undefined we can upgrade for now
         if (creep.memory.goal == undefined)
             creep.memory.goal = Goals.UPGRADE;
         //Check if we're full on energy
-        if (creep.carry.energy == creep.carryCapacity)
+        if (creep.store.getFreeCapacity() == 0)
             creep.memory.working = true;
         //If we're out of energy obtain more
-        else if (creep.carry.energy == 0 || creep.memory.working == undefined)
+        else if (creep.store.getUsedCapacity() == 0 || creep.memory.working == undefined)
             creep.memory.working = false;
+        if (creep.memory.goal == Goals.TRADE) {
+            this.trader(creep);
+        }
         //Lets Spend some energy
         if (creep.memory.working) {
             //Switch through possible goals and our actions based on them
@@ -1009,13 +1080,16 @@ class Creep_Prototype {
                     if (Creep_Prototype.creepUpgrade(creep) != 0)
                         creep.memory.goal = undefined;
                     break;
+                case Goals.STORE:
+                    if (Creep_Prototype.creepStore(creep) != 0)
+                        creep.memory.goal = undefined;
+                    break;
             }
         }
         //Lets get some energy
         else {
             //We're mining
-            creep.say('⛏', true);
-            //Got harvest
+            creep.say('⛏', publicDebug);
             if (Creep_Prototype.creepHarvest(creep) != 0)
                 Creep_Prototype.creepPickup(creep);
         }
@@ -1139,17 +1213,57 @@ class Extractor extends Creep_Prototype {
     }
 }
 
+//Import the creepRole interface
+/**
+ * This is the class for the Carrier creep. The primary role of the carrier
+ * creep is to move resources around the base and into storage or other devices
+ * that could use them.
+ */
+class Miner extends Creep_Prototype {
+    constructor() {
+        super(...arguments);
+        //Variables
+        this.name = "Miner";
+    }
+    //Real Methods
+    run(creep) {
+        Miner.run(creep);
+    }
+    static run(creep) {
+        if (creep.memory.sources == undefined)
+            var s = creep.room.find(FIND_SOURCES_ACTIVE);
+        if (s != undefined) {
+            var t = s[0];
+            for (var i = 1; i < s.length; i++)
+                if (s[i].energy > t.energy)
+                    t = s[i];
+        }
+        Creep_Prototype.creepHarvest(creep);
+    }
+}
+
 //Import the queue so we can request tasks, priority so we can set priority
 var params = {};
 params["Scout"] = new Scout();
 params["Defender"] = new Defender();
 params["Extractor"] = new Extractor();
+params["Miner"] = new Miner();
+/**
+ * This is an class describing a job for creeps to take on.
+ */
+class Job {
+    constructor(g, r) {
+        this.goal = g;
+        this.room = r;
+    }
+    getGoal() { return this.goal; }
+    getRoom() { return this.room; }
+}
 /**
  * This is the creep manager class. It is mostly static and handles the
  * management of creeps including their AI and memory.
  */
 class CreepManager {
-    //Variables
     //Constructors
     constructor() {
         //Set the last time we cleaned memory to the anchient times
@@ -1163,6 +1277,7 @@ class CreepManager {
      * Runtime: O(c) ---> Runs in constant time.
      */
     static run() {
+        CreepManager.updateCreeps();
         //Start at 6,000 ticks and increment down. Request a clean based on how long ago it was
         for (var i = 4; i > 0; i--)
             if (Game.time - Memory.lastCreepClean >= 1500 * i || Memory.lastCreepClean == undefined) {
@@ -1172,6 +1287,8 @@ class CreepManager {
             }
     }
     static runCreepsAI() {
+        CreepManager.updateCreeps();
+        CreepManager.assignJobs();
         //Iterate through creeps
         for (let c in Game.creeps) {
             //Short hand
@@ -1201,7 +1318,40 @@ class CreepManager {
         //Set the last clean date to right now
         Memory.lastCreepClean = Game.time;
     }
+    static updateCreeps() {
+        CreepManager.creeps = [];
+        for (var c in Memory.creeps) {
+            if (!Game.creeps[c])
+                delete Memory.creeps[c];
+            else
+                CreepManager.creeps.push(Game.creeps[c]);
+        }
+    }
+    static declareJob(j) { CreepManager.jobs.push(j); }
+    static assignJobs() {
+        for (var i = 0; i < CreepManager.jobs.length; i++)
+            for (var j = 0; j < CreepManager.creeps.length; j++) {
+                if (CreepManager.creeps[j].memory.room == CreepManager.jobs[i].getRoom()) {
+                    if (CreepManager.creeps[j].memory.goal == undefined || CreepManager.creeps[j].memory.goal == Goals.UPGRADE) {
+                        CreepManager.creeps[j].memory.goal = CreepManager.jobs.pop().getGoal();
+                        break;
+                    }
+                    else if (CreepManager.jobs[i].getGoal() == Goals.STORE) {
+                        CreepManager.creeps[j].memory.goal = CreepManager.jobs.pop().getGoal();
+                        break;
+                    }
+                }
+            }
+    }
+    static printJobs() {
+        for (var i = 0; i < CreepManager.jobs.length; i++)
+            console.log(CreepManager.jobs[i].getRoom() + " - " + CreepManager.jobs[i].getGoal());
+        return 0;
+    }
 }
+//Variables
+CreepManager.jobs = [];
+CreepManager.creeps = [];
 /**
  * The run CreepManager task runs the logic for the CreepManager which requests
  * other tasks that need to be completed in the future.
@@ -2420,30 +2570,29 @@ class Colony {
      * which are currently needed.
      */
     checkGoals() {
-        var goal = [];
         //Search for a set of objects
         var threashold = 3;
         for (var i = 1; i <= this.home.controller.level; i++)
             threashold = threashold * 10;
-        var w = this.home.find(FIND_STRUCTURES, { filter: (c) => (c.structureType == STRUCTURE_RAMPART || c.structureType == STRUCTURE_WALL) && c.hits < threashold });
-        var r = this.home.find(FIND_STRUCTURES, { filter: (c) => c.hits < c.hitsMax && (c.structureType != STRUCTURE_WALL && c.structureType != STRUCTURE_RAMPART) });
-        var c = this.home.find(FIND_CONSTRUCTION_SITES);
-        // var d:Resource[] | null = this.home.find(FIND_DROPPED_RESOURCES, {filter: {resourceType: RESOURCE_ENERGY}});
-        var s = this.home.find(FIND_MY_STRUCTURES, { filter: (s) => (s.structureType == STRUCTURE_SPAWN || s.structureType == STRUCTURE_EXTENSION || s.structureType == STRUCTURE_TOWER) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0 }); //O(7 + 3n)
+        const w = this.home.find(FIND_STRUCTURES, { filter: (c) => (c.structureType == STRUCTURE_RAMPART || c.structureType == STRUCTURE_WALL) && c.hits < threashold });
+        const r = this.home.find(FIND_STRUCTURES, { filter: (c) => c.hits < c.hitsMax && (c.structureType != STRUCTURE_WALL && c.structureType != STRUCTURE_RAMPART) });
+        const c = this.home.find(FIND_CONSTRUCTION_SITES);
+        const d = this.home.find(FIND_SOURCES_ACTIVE);
+        const s = this.home.find(FIND_MY_STRUCTURES, { filter: (s) => (s.structureType == STRUCTURE_SPAWN || s.structureType == STRUCTURE_EXTENSION || s.structureType == STRUCTURE_TOWER) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0 }); //O(7 + 3n)
+        if (this.home.terminal != undefined && Game.time % 1500 == 0)
+            if (this.home.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < 10000)
+                CreepManager.declareJob(new Job(Goals.TRADE, this.home.name));
         //Check the goals that need to be taken
         if (w != null && w.length > 0 && Game.time % 500 == 0)
-            goal.push(Goals.REINFORCE);
+            CreepManager.declareJob(new Job(Goals.REINFORCE, this.home.name));
         if (r != null && r.length > 0 && Game.time % 500 == 0)
-            goal.push(Goals.FIX);
+            CreepManager.declareJob(new Job(Goals.FIX, this.home.name));
         if (c != null && c.length > 0 && Game.time % 250 == 0)
-            goal.push(Goals.BUILD);
+            CreepManager.declareJob(new Job(Goals.BUILD, this.home.name));
         if (s != null && s.length > 0 && Game.time % 25 == 0)
-            goal.push(Goals.FILL);
-        //Assign the goals to the creeps ^-^
-        for (var i = 0; i < goal.length; i++)
-            for (let c in Game.creeps)
-                if (Game.creeps[c].room.name == this.home.name && Game.creeps[c].memory.role == undefined && (Game.creeps[c].memory.goal == undefined || Game.creeps[c].memory.goal == Goals.UPGRADE))
-                    Game.creeps[c].memory.goal = goal.pop();
+            CreepManager.declareJob(new Job(Goals.FILL, this.home.name));
+        if (d != null && d.length > 0 && Game.time % 500 == 0)
+            CreepManager.declareJob(new Job(Goals.STORE, this.home.name));
     }
 }
 class Run_Colony extends template {
@@ -2520,6 +2669,62 @@ class Calculate_FloodFill extends template {
 //   }
 // }
 
+var SortTypes;
+(function (SortTypes) {
+    SortTypes["PRICE"] = "price";
+})(SortTypes || (SortTypes = {}));
+class MarketManipulator {
+    static marketView(r = undefined, t = undefined) {
+        if (r == undefined && t == undefined)
+            MarketManipulator.orders = Game.market.getAllOrders();
+        else if (r != undefined && t == undefined)
+            MarketManipulator.orders = Game.market.getAllOrders({ resourceType: r });
+        else if (r == undefined && t != undefined && (t == ORDER_SELL || t == ORDER_BUY))
+            MarketManipulator.orders = Game.market.getAllOrders({ type: t });
+        else if (t == ORDER_SELL || t == ORDER_BUY)
+            MarketManipulator.orders = Game.market.getAllOrders({ type: t, resourceType: r });
+        else
+            throw "Order type is not \"sell\" or \"buy\".";
+        return 0;
+    }
+    static sortView(t) {
+        switch (t) {
+            case SortTypes.PRICE: MarketManipulator.orders.sort((a, b) => b.price - a.price);
+        }
+        return 0;
+    }
+    static buyFilter() {
+        const o = _.cloneDeep(MarketManipulator.orders);
+        MarketManipulator.orders = [];
+        for (var i = 0; i < o.length; i++)
+            if (o[i].type == ORDER_BUY)
+                MarketManipulator.orders.push(o[i]);
+        return 0;
+    }
+    static marketSell(r, t) {
+        if (typeof t != typeof "" || StructureTerminal)
+            return -2; //throw "t can only be a room name or terminal.";
+        if (typeof t == typeof "") {
+            if (Game.rooms[t].terminal != undefined)
+                t = Game.rooms[t].terminal;
+            else
+                return -1; //throw "No terminal was found in room [" + t + "]";
+        }
+        MarketManipulator.marketView(r, ORDER_BUY);
+        MarketManipulator.sortView(SortTypes.PRICE);
+        if (MarketManipulator.orders[0] != undefined)
+            Game.market.deal(MarketManipulator.orders[0].id, Math.min(MarketManipulator.orders[0].remainingAmount, t.store.getUsedCapacity(r)), t.room.name);
+        return 0;
+    }
+    static print() {
+        console.log("Current Market View");
+        for (var i = 0; i < MarketManipulator.orders.length; i++)
+            console.log("[" + MarketManipulator.orders[i].id + "] " + MarketManipulator.orders[i].type + " " + MarketManipulator.orders[i].resourceType + " - " + MarketManipulator.orders[i].remainingAmount + " <" + MarketManipulator.orders[i].price + ">");
+        return 0;
+    }
+}
+MarketManipulator.orders = [];
+
 //A queue object holding the items which have been queue'd to complete.
 var queue = new Queue();
 //A rooms object holding all the rooms.
@@ -2531,6 +2736,10 @@ exports.colonies = void 0;
 global.Stats = module.exports = StatsManager;
 // @ts-ignore
 global.queue = module.exports = queue;
+// @ts-ignore
+global.CreepManager = module.exports = CreepManager;
+// @ts-ignore
+global.MarketManager = module.exports = MarketManipulator;
 /**
  * This is the main loop for the program. Expect clean concise code, anything
  * else means I should really get to work.
