@@ -95,9 +95,6 @@ export class CreepManager {
         if (CreepManager.creeps[j].memory.goal == undefined ||    CreepManager.creeps[j].memory.goal == Goals.UPGRADE) {
           CreepManager.creeps[j].memory.goal = CreepManager.jobs.pop()!.getGoal();
           break;
-        } else if (CreepManager.jobs[i].getGoal() == Goals.STORE) {
-          CreepManager.creeps[j].memory.goal = CreepManager.jobs.pop()!.getGoal();
-          break;
         }
       }
     }

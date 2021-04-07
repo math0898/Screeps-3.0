@@ -1029,7 +1029,7 @@ class Creep_Prototype {
             }
         }
         else {
-            if (creep.room.terminal.store.getUsedCapacity() <= 10000) {
+            if (creep.room.terminal.store.getUsedCapacity() <= 100000) {
                 for (var i = 0; i < RESOURCES_ALL.length; i++) {
                     if (creep.room.storage.store.getUsedCapacity(RESOURCES_ALL[i]) > 1) {
                         if (creep.withdraw(creep.room.storage, RESOURCES_ALL[i], Math.min(creep.store.getFreeCapacity(), creep.room.storage.store.getUsedCapacity(RESOURCES_ALL[i]) - 1)) == ERR_NOT_IN_RANGE)
@@ -1037,7 +1037,10 @@ class Creep_Prototype {
                     }
                 }
             }
+            else
+                return -1;
         }
+        return 0;
     }
     static run(creep) {
         //If goal in creep memory was undefined we can upgrade for now
@@ -1051,6 +1054,7 @@ class Creep_Prototype {
             creep.memory.working = false;
         if (creep.memory.goal == Goals.TRADE) {
             this.trader(creep);
+            return;
         }
         //Lets Spend some energy
         if (creep.memory.working) {
@@ -1333,10 +1337,6 @@ class CreepManager {
             for (var j = 0; j < CreepManager.creeps.length; j++) {
                 if (CreepManager.creeps[j].memory.room == CreepManager.jobs[i].getRoom()) {
                     if (CreepManager.creeps[j].memory.goal == undefined || CreepManager.creeps[j].memory.goal == Goals.UPGRADE) {
-                        CreepManager.creeps[j].memory.goal = CreepManager.jobs.pop().getGoal();
-                        break;
-                    }
-                    else if (CreepManager.jobs[i].getGoal() == Goals.STORE) {
                         CreepManager.creeps[j].memory.goal = CreepManager.jobs.pop().getGoal();
                         break;
                     }
@@ -2702,18 +2702,28 @@ class MarketManipulator {
         return 0;
     }
     static marketSell(r, t) {
-        if (typeof t != typeof "" || StructureTerminal)
-            return -2; //throw "t can only be a room name or terminal.";
-        if (typeof t == typeof "") {
-            if (Game.rooms[t].terminal != undefined)
-                t = Game.rooms[t].terminal;
-            else
-                return -1; //throw "No terminal was found in room [" + t + "]";
-        }
+        if (Game.rooms[t].terminal != undefined)
+            t = Game.rooms[t].terminal;
+        else
+            return -1; //throw "No terminal was found in room [" + t + "]";
         MarketManipulator.marketView(r, ORDER_BUY);
         MarketManipulator.sortView(SortTypes.PRICE);
-        if (MarketManipulator.orders[0] != undefined)
-            Game.market.deal(MarketManipulator.orders[0].id, Math.min(MarketManipulator.orders[0].remainingAmount, t.store.getUsedCapacity(r)), t.room.name);
+        var spent = 0;
+        var totalFees = 0;
+        var i = 0;
+        const toSpend = t.store.getUsedCapacity(r);
+        while (spent <= toSpend && MarketManipulator.orders[i] != undefined) {
+            const amount = Math.min(MarketManipulator.orders[i].remainingAmount, toSpend - spent);
+            const fees = Game.market.calcTransactionCost(amount, t.room.name, MarketManipulator.orders[i].roomName);
+            if (totalFees + fees > t.store.getUsedCapacity(RESOURCE_ENERGY))
+                return -5;
+            Game.market.deal(MarketManipulator.orders[i].id, amount, t.roomName);
+            spent += amount;
+            totalFees += fees;
+            i++;
+            if (i == 10)
+                break; //No more than 10 orders per tick
+        }
         return 0;
     }
     static print() {

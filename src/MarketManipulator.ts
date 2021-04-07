@@ -22,14 +22,24 @@ export class MarketManipulator {
     return 0;
   }
   static marketSell(r:ResourceConstant, t:any) {
-    if (typeof t != typeof "" || StructureTerminal) return -2; //throw "t can only be a room name or terminal.";
-    if (typeof t == typeof "") {
-      if (Game.rooms[t].terminal != undefined) t = Game.rooms[t].terminal;
-      else return -1; //throw "No terminal was found in room [" + t + "]";
-    }
+    if (Game.rooms[t].terminal != undefined) t = Game.rooms[t].terminal;
+    else return -1; //throw "No terminal was found in room [" + t + "]";
     MarketManipulator.marketView(r, ORDER_BUY);
     MarketManipulator.sortView(SortTypes.PRICE);
-    if (MarketManipulator.orders[0] != undefined) Game.market.deal(MarketManipulator.orders[0].id, Math.min(MarketManipulator.orders[0].remainingAmount, t.store.getUsedCapacity(r)), t.room.name);
+    var spent:number = 0;
+    var totalFees:number = 0
+    var i:number = 0;
+    const toSpend:number = t.store.getUsedCapacity(r);
+    while (spent <= toSpend && MarketManipulator.orders[i] != undefined) {
+      const amount:number = Math.min(MarketManipulator.orders[i].remainingAmount, toSpend -spent);
+      const fees:number = Game.market.calcTransactionCost(amount, t.room.name, MarketManipulator.orders[i].roomName!);
+      if (totalFees + fees > t.store.getUsedCapacity(RESOURCE_ENERGY)) return -5;
+      Game.market.deal(MarketManipulator.orders[i].id, amount, t.roomName);
+      spent += amount;
+      totalFees += fees;
+      i++;
+      if (i == 10) break; //No more than 10 orders per tick
+    }
     return 0;
   }
   static print(){

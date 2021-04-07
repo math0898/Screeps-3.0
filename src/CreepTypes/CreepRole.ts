@@ -378,14 +378,15 @@ export abstract class Creep_Prototype {
         }
       }
     } else {
-      if (creep.room.terminal!.store.getUsedCapacity() <= 10000) {
+      if (creep.room.terminal!.store.getUsedCapacity() <= 100000) {
         for (var i = 0; i < RESOURCES_ALL.length; i++) {
           if (creep.room.storage!.store.getUsedCapacity(RESOURCES_ALL[i]) > 1) {
             if (creep.withdraw(creep.room.storage!, RESOURCES_ALL[i], Math.min(creep.store.getFreeCapacity(), creep.room.storage!.store.getUsedCapacity(RESOURCES_ALL[i]) - 1)) == ERR_NOT_IN_RANGE) creep.moveTo(creep.room.storage!);
           }
         }
-      }
+      } else return -1;
     }
+    return 0;
   }
   static run(creep:Creep){
     //If goal in creep memory was undefined we can upgrade for now
@@ -395,7 +396,7 @@ export abstract class Creep_Prototype {
     //If we're out of energy obtain more
     else if (creep.store.getUsedCapacity() == 0 || creep.memory.working == undefined) creep.memory.working = false;
     if (creep.memory.goal == Goals.TRADE) {
-      this.trader(creep);
+      this.trader(creep); return;
     }
     //Lets Spend some energy
     if(creep.memory.working) {
