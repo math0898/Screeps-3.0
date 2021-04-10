@@ -3,31 +3,29 @@
  */
 export interface task extends template {
  /**
-  * A string variable which stores the shorthand name for the task.
-  */
-  name: string,
- /**
-  * Returns the name of the task.
-  */
-  getName():string,
- /**
   * Runs the task.
   */
-  run():void
+  run():number | void //todo: remove void
 }
 /**
  * A simple class which implements getName() so I don't have to a hundred times
- * over lol xD 
+ * over lol xD
  */
 export abstract class template {
   //Variables
   /**
    * A string varaible which stores the shorthand name for the task.
    */
-  name: string = "Undefined";
+  private name: string = "Undefined";
 
   //Constructor
-  constructor(){}
+  /**
+   * Implementations of task should call this constructor with their name so it
+   * can be private and not changed in the future.
+   */
+  constructor(n: string){
+    this.name = n;
+  }
 
   //Accessor methods
   /**

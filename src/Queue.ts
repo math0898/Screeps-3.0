@@ -21,21 +21,18 @@ class Request {
   /**
    * This describes the basic construction of a priority. Similar to the Request
    * class its fairly basic and just requires the setting of local counterparts.
-   * Runtime: O(2)
    * @param t The described in the request
    * @param p The prioirty the task should be run at
    */
-  constructor(t:task, p:priority){ this.task = t; this.prio = p; } //O(2)
+  constructor(t:task, p:priority){ this.task = t; this.prio = p; }
   /**
    * getTask() returns the task in the Request object.
-   * Runtime: O(1)
    */
-  getTask(){ return this.task; } //O(1)
+  getTask(){ return this.task; }
   /**
    * The getPrio method returns the priority of the Request object.
-   * Runtime: O(1)
    */
-  getPrio(){ return this.prio; } //O(1)
+  getPrio(){ return this.prio; }
 }
 /**
  * We import the task interface from "task" so we can act on class which
@@ -84,28 +81,21 @@ export class Queue{
   /**
    * The printQueue method prints all the items in the queue to the console in a
    * hopefully human readable format.
-   * Runtime: O(9 + 5h + 5m + 5l + 5t) or O(9 + 5n) where n is the number of
-   * tasks in all arrays
    */
   printQueue(){
-    //Nice header
-    console.log("---- Queue: ----"); //O(1)
-    //Print a sub header
-    console.log(priority.HIGH + ": "); //O(2)
-    //Iterate through the list and print
-    for(var j = 0; j < this.highTasks.length; j++) console.log("    " + this.highTasks[j].getName()); //O(3 + 5h)
-    //Print a sub header
-    console.log(priority.MEDIUM + ": "); //O(4 + 5h)
-    //Iterate through the list and print
-    for(var j = 0; j < this.mediumTasks.length; j++) console.log("    " + this.mediumTasks[j].getName()); //O(5 + 5h + 5m)
-    //Print a sub header
-    console.log(priority.LOW + ": "); //O(6 + 5h + 5m)
-    //Iterate through the list and print
-    for(var j = 0; j < this.lowTasks.length; j++) console.log("    " + this.lowTasks[j].getName()); //O(7 + 5h + 5m + 5l)
-    //Print a sub header
-    console.log(priority.NONE + ": "); //O(8 + 5h + 5m + 5l)
-    //Iterate through the list and print
-    for(var j = 0; j < this.tasks.length; j++) console.log("    "+ this.tasks[j].getName()); //O(9 + 5h + 5m + 5l + 5t)
+    console.log("---- Queue: ----");
+
+    console.log(priority.HIGH + ": ");
+    for(var j = 0; j < this.highTasks.length; j++) console.log("    " + this.highTasks[j].getName());
+
+    console.log(priority.MEDIUM + ": ");
+    for(var j = 0; j < this.mediumTasks.length; j++) console.log("    " + this.mediumTasks[j].getName());
+
+    console.log(priority.LOW + ": ");
+    for(var j = 0; j < this.lowTasks.length; j++) console.log("    " + this.lowTasks[j].getName());
+
+    console.log(priority.NONE + ": ");
+    for(var j = 0; j < this.tasks.length; j++) console.log("    "+ this.tasks[j].getName());
   }
   /**
    * This method runQueue runs the queue object with all of the given tasks. It

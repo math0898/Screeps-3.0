@@ -103,6 +103,9 @@ export class CreepManager {
     for (var i = 0; i < CreepManager.jobs.length; i++) console.log(CreepManager.jobs[i].getRoom() + " - " + CreepManager.jobs[i].getGoal());
     return 0;
   }
+  static resetJobs(){
+    while (CreepManager.jobs.length > 0) CreepManager.jobs.pop();
+  }
 }
 //Import the tasks interface
 import { task, template } from "task";
@@ -111,9 +114,8 @@ import { task, template } from "task";
  * other tasks that need to be completed in the future.
  */
 export class run_CreepManager extends template implements task {
-  //Variables
-  name:string = "Run The Creep Manager";
 
+  constructor(){super("Run Creep Manager");}
   //Real Methods
   run(){
     //Simple enough I'd say
@@ -124,9 +126,7 @@ export class run_CreepManager extends template implements task {
  * The creepAI CreepManager task runs the ai for all the creeps.
  */
 export class creepAI_CreepManager extends template implements task {
-  //Variables
-  name:string = "Run Creep AI";
-
+  constructor(){super("Run Creep AI");}
   //Real Methods
   run(){
     //Simple enough I'd say
@@ -139,8 +139,7 @@ export class creepAI_CreepManager extends template implements task {
  */
 export class cleanMemory_CreepManager extends template implements task {
   //Variables
-  name:string = "Clean Creep Memory";
-
+  constructor(){super("Clean Creep Memory");}
   //Real Methods
   run(){
     //Simple enough I'd say

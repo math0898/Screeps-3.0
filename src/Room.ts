@@ -17,7 +17,7 @@ enum state {
 /**
  * The room class. Handles information about rooms.
  */
-export class struc_Room {
+export class RoomPrototype {
   //Variables
   roomRefrence: string; //Holds the refrence to the room, example "W32N6"
   roomState: state; //Holds the current state of the room, example "ALLIED"
@@ -94,7 +94,7 @@ export class struc_Room {
    * Runtime: O(f) ---> find command used.
    * @param r The room which's type is being checked. Defaults to this object.
    */
-  findRoomState(r: struc_Room = this){
+  findRoomState(r: RoomPrototype = this){
     //Make this const so we can call methods fewer times.
     const room = Game.rooms[r.getRoomRefrence()];
     //If the controller is not undefined...
@@ -153,22 +153,19 @@ import { task, template } from "task";;
  * Game.rooms. It is a fairly costly task and so shouldn't be run much.
  * Runtime: O(r * f) --> find is used at most once per room in Game.rooms
  */
-export class init_Rooms extends template implements task {
+export class init_Rooms extends template { //todo: rework the way rooms[] works
   //Varaibles
-  //The name of the task
-  name:string = "Initalize Rooms";
   //The rooms array which we're initalizing
-  rooms?:struc_Room[];
-
+  rooms?:RoomPrototype[];
   //Constructors
  /**
   * Takes the room array where the intialized rooms should be placed. WARN! This
   * will overwrite any data currently here!
   * @param rooms The room array to store the data in.
   */
-  constructor(rooms?:struc_Room[]){
+  constructor(rooms?:RoomPrototype[]){
     //Call super
-    super();
+    super("Initalize Rooms");
     //Set localized counter part
     this.rooms = rooms;
   }
@@ -182,7 +179,7 @@ export class init_Rooms extends template implements task {
       //Assign it because well this is kind of annoying
       var r: Room = Game.rooms[name];
       //Now push the rooms into the array one by one
-      this.rooms.push(new struc_Room(r.name));
+      this.rooms.push(new RoomPrototype(r.name));
     }
     return this.rooms;
   }
@@ -194,19 +191,17 @@ export class init_Rooms extends template implements task {
  */
 export class update_Rooms extends template implements task {
   //Variables
-  //The name of the task
-  name:string = "Update Rooms";
   //The rooms array which we're updating
-  rooms:struc_Room[];
+  rooms:RoomPrototype[];
 
   //Constructors
  /**
   * Makes an update_Rooms task.
   * @param rooms The room array to be updated.
   */
-  constructor(rooms:struc_Room[]){
+  constructor(rooms:RoomPrototype[]){
     //Call super
-    super();
+    super("Update Rooms");
     //Set localized counter part
     this.rooms = rooms;
   }
@@ -232,19 +227,17 @@ export class update_Rooms extends template implements task {
  */
 export class print_Rooms extends template implements task {
   //Variables
-  //The name of the task
-  name:string = "Print Rooms"
   //The rooms array which we're printing
-  rooms:struc_Room[];
+  rooms:RoomPrototype[];
 
   //constructors
  /**
   * Makes a print_Rooms task which prints the rooms in the given array.
   * @param rooms The room array to be printed.
   */
-  constructor(rooms:struc_Room[]){
+  constructor(rooms:RoomPrototype[]){
     //Call super
-    super();
+    super("Print Rooms");
     //Set localized counter part
     this.rooms = rooms;
   }
@@ -256,11 +249,9 @@ export class print_Rooms extends template implements task {
   */
   run(){
     //Check if rooms is undefined
-    if (this.rooms == undefined) {
-      console.log("Could not print rooms");
-      return;
-    }
+    if (this.rooms == undefined) return -1;
     //Iterate down the array and call each rooms print
     for (var i = 0; i < this.rooms.length; i++) this.rooms[i].print(); //O(r * c)
+    return 0;
   }
 }

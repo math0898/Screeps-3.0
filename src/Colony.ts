@@ -1,7 +1,7 @@
 //Import tasks
 import { task, template } from "task";
 //Import rooms
-import { struc_Room } from "Room";
+import { RoomPrototype } from "Room";
 //Import the spawn manager
 import { SpawnManager } from "SpawnManager";
 import { CreepManager, Job } from "CreepManager";
@@ -12,6 +12,9 @@ import { RoomPlanner } from "RoomPlanner";
 import { Goals } from "CreepTypes/CreepRole";
 interface IDictionary { [index: string]: number; }
 var p = {} as IDictionary;
+export enum EnergyStatus {EXTREME_DROUGHT = 0, HIGH_DROUGHT = 0.5, DROUGHT = 1,
+MEDIUM_DROUGHT = 1.5, LIGHT_DROUGHT = 2, LIGHT_FLOOD = 2.5, MEDIUM_FLOOD = 3,
+FLOOD = 3.5, HIGH_FLOOD = 4, EXTREME_FLOOD = 4.5}
 /**
  * A colony is a small collection of rooms. Each colony has a number of creeps
  * it needs to spawn to be functional.
@@ -20,18 +23,19 @@ export class Colony{
   era:number;
   home:Room;
   neighbors?:Room[];
-  neighborsPrototype?:struc_Room[];
-  homePrototype:struc_Room;
+  neighborsPrototype?:RoomPrototype[];
+  homePrototype:RoomPrototype;
   spawnManager:SpawnManager;
   roomPlanner:RoomPlanner;
+  energyStatus?:EnergyStatus;
 
   //Constructors
   constructor(r:Room){
     this.home = r;
     this.era = -1;
-    this.homePrototype = new struc_Room(r.name);
+    this.homePrototype = new RoomPrototype(r.name);
     if(r.controller != undefined) if(r.controller.level <= 2) this.era = 0;
-    this.spawnManager = new SpawnManager(Game.rooms[this.homePrototype.getRoomRefrence()]);
+    this.spawnManager = new SpawnManager(this.homePrototype);
     this.home.memory.counts = p;
     this.roomPlanner = new RoomPlanner(this.home);
   }
@@ -52,7 +56,10 @@ export class Colony{
     var c:ConstructionSite[] | null = this.home.find(FIND_CONSTRUCTION_SITES);
     if(this.roomPlanner.getConstruction() != undefined && c.length == 0) this.roomPlanner.getConstruction()!.pop()!.place();
     //Request a census every 100 ticks
-    if(Game.time % 100 == 0) Queue.request(new Run_Census(this));
+    if(Game.time % 100 == 0) {
+      Queue.request(new Run_Census(this));
+      Queue.request(new Check_Energy(this));
+    }
     if (this.roomPlanner.getDistanceTransform() == undefined) Queue.request(new Calculate_DistanceTransform(this));
     // if (this.roomPlanner.getMinCut() == undefined) {
     //   var pos:RoomPosition[] = [];
@@ -61,7 +68,7 @@ export class Colony{
     //   pos.push(this.home.controller!.pos);
     //   Queue.request(new Calculate_MinCut(this, pos));
     // }
-    if (Game.flags["Flood"] != undefined) if (Game.flags["Flood"].room!.name == this.home.name) Queue.request(new Calculate_FloodFill(this, Game.flags["Flood"].pos));
+    if (Game.flags["Flood"] != undefined) if (Game.flags["Flood"].room!.name == this.home.name) Queue.request(new Calculate_FloodFill(this));
     this.checkGoals();
     //Run the spawn manger.
     spawn(this.home);
@@ -108,16 +115,32 @@ export class Colony{
      if (s != null && s.length > 0 && Game.time % 25 == 0) CreepManager.declareJob(new Job(Goals.FILL, this.home.name));
      if (d != null && d.length > 0 && Game.time % 500 == 0) CreepManager.declareJob(new Job(Goals.STORE, this.home.name));
     }
+    checkEnergyStatus() {
+      if (this.home.storage == undefined) this.energyStatus = undefined;
+      else {
+        const energy:number = this.home.storage.store.getUsedCapacity(RESOURCE_ENERGY);
+        if (energy > 450000) this.energyStatus = EnergyStatus.EXTREME_FLOOD;
+        else if (energy > 400000) this.energyStatus = EnergyStatus.HIGH_FLOOD;
+        else if (energy > 350000) this.energyStatus = EnergyStatus.FLOOD;
+        else if (energy > 300000) this.energyStatus = EnergyStatus.MEDIUM_FLOOD;
+        else if (energy > 250000) this.energyStatus = EnergyStatus.LIGHT_FLOOD;
+        else if (energy > 200000) this.energyStatus = EnergyStatus.LIGHT_DROUGHT;
+        else if (energy > 150000) this.energyStatus = EnergyStatus.MEDIUM_DROUGHT;
+        else if (energy > 100000) this.energyStatus = EnergyStatus.DROUGHT;
+        else if (energy > 50000) this.energyStatus = EnergyStatus.HIGH_DROUGHT;
+        else this.energyStatus = EnergyStatus.EXTREME_DROUGHT;
+      }
+      this.home.memory.energyStatus = this.energyStatus;
+    }
 }
 
 export class Run_Colony extends template implements task {
   //Variables
-  name:string = "Run Colony";
   colony:Colony;
 
   //Constructor
   constructor(c:Colony){
-    super();
+    super("Run Colony");
     this.colony = c;
   }
 
@@ -129,12 +152,11 @@ export class Run_Colony extends template implements task {
 
 export class Run_Census extends template implements task {
   //Variables
-  name:string = "Run Census";
   colony:Colony;
 
   //Construtor
   constructor(c:Colony){
-    super();
+    super("Run Census");
     this.colony = c;
   }
 
@@ -146,12 +168,11 @@ export class Run_Census extends template implements task {
 
 export class Setup_Goals extends template implements task {
   //Variables
-  name:string = "Setup Goals";
   colony:Colony;
 
   //Constructor
   constructor(c:Colony){
-    super();
+    super("Setup Goals");
     this.colony = c;
   }
 
@@ -161,14 +182,24 @@ export class Setup_Goals extends template implements task {
   }
 }
 
+export class Check_Energy extends template implements task {
+  colony:Colony;
+
+  constructor(c:Colony){
+    super("Check Energy");
+    this.colony = c;
+  }
+
+  run(){this.colony.checkEnergyStatus();}
+}
+
 export class Calculate_DistanceTransform extends template implements task {
   //Variables
-  name:string = "Calculate Distance-transform";
   colony:Colony;
 
   //Constructor
   constructor(c:Colony){
-    super();
+    super("Calculate Distance-transform");
     this.colony = c;
   }
 
@@ -177,23 +208,18 @@ export class Calculate_DistanceTransform extends template implements task {
     if (this.colony.roomPlanner.computeDistanceTransform() != 0) Queue.request(new Calculate_DistanceTransform(this.colony));
   }
 }
-
+/**
+ * Describes a basic floodfill algorithm run request. The colony is required to
+ * know what roomPlanner is being asked to compute the flood and the
+ */
 export class Calculate_FloodFill extends template implements task {
-  //Variables
-  name:string = "Calculate Flood Fill";
   colony:Colony;
-  start:RoomPosition;
-
-  //Constructor
-  constructor(c:Colony, p:RoomPosition){
-    super();
+  constructor(c:Colony){
+    super("Calculate Flood Fill");
     this.colony = c;
-    this.start = p;
   }
-
-  //Methods
   run(){
-    if (this.colony.roomPlanner.computeFloodfill() != 0) Queue.request(new Calculate_FloodFill(this.colony, this.start));
+    if (this.colony.roomPlanner.computeFloodfill() != 0) Queue.request(new Calculate_FloodFill(this.colony));
   }
 }
 // export class Calculate_MinCut extends template implements task {

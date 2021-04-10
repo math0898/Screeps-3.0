@@ -4,7 +4,7 @@
  * of here.
  */
 //This class handles everything related to rooms and their general information.
-import { struc_Room } from "Room";
+import { RoomPrototype } from "Room";
 import { Queue, priority } from "Queue";
 import { StatsManager} from "Stats";
 //Import the tasks
@@ -17,7 +17,7 @@ import { MarketManipulator } from "MarketManipulator";
 //A queue object holding the items which have been queue'd to complete.
 var queue: Queue = new Queue();
 //A rooms object holding all the rooms.
-var rooms: struc_Room[];
+var rooms: RoomPrototype[];
 var statsManager = new StatsManager();
 //A colony array holding all of the colonies
 export var colonies: Colony[];
@@ -25,11 +25,11 @@ export var colonies: Colony[];
 // @ts-ignore, javascript shenanigans, ignore it typescript
 global.Stats = module.exports = StatsManager;
 // @ts-ignore
-global.queue = module.exports = queue;
+global.Queue = module.exports = queue;
 // @ts-ignore
-global.CreepManager = module.exports = CreepManager;
+global.Creeps = module.exports = CreepManager;
 // @ts-ignore
-global.MarketManager = module.exports = MarketManipulator;
+global.Market = module.exports = MarketManipulator;
 
 /**
  * This is the main loop for the program. Expect clean concise code, anything

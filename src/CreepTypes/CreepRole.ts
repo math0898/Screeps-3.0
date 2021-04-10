@@ -2,6 +2,11 @@
  * This boolean tells whether creeps should report what they are doing or not.
  */
 var debug:boolean = true;
+//-------------------------------------------------------
+//|                                                     |
+//| Creep.prototpye.sayHi = function(){this.say('hi');} |
+//|                                                     |
+//-------------------------------------------------------
 /**
  * Should the debug messages be sent to everyone?
  */

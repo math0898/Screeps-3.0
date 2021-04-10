@@ -236,12 +236,17 @@ Queue.requests = [];
  */
 class template {
     //Constructor
-    constructor() {
+    /**
+     * Implementations of task should call this constructor with their name so it
+     * can be private and not changed in the future.
+     */
+    constructor(n) {
         //Variables
         /**
          * A string varaible which stores the shorthand name for the task.
          */
         this.name = "Undefined";
+        this.name = n;
     }
     //Accessor methods
     /**
@@ -271,9 +276,6 @@ class StatsManager {
         //Check if we think we're initalized
         if (Memory.statsInit != true)
             return false;
-        //Check the count of the amount of cpu used
-        else if (Memory.cpuCount == undefined)
-            return false;
         //Check the running average of cpu
         else if (Memory.cpuAverage == undefined)
             return false;
@@ -296,6 +298,8 @@ class StatsManager {
         Memory.statsInit = true;
         //Set the tick we've started on
         Memory.startTick = Game.time;
+        //Success
+        return 0;
     }
     /**
      * Prints the stats collected, these are stored in Memory.stats.
@@ -352,12 +356,7 @@ class StatsManager {
  */
 class collect_Stats extends template {
     //Constructors
-    constructor() {
-        super();
-        //Variables
-        //The name of the task
-        this.name = "Collect Stats";
-    }
+    constructor() { super("Collect Stats"); }
     //Real methods
     run() {
         //Collect the stats... its really just that easy.
@@ -524,10 +523,7 @@ class init_Rooms extends template {
      */
     constructor(rooms) {
         //Call super
-        super();
-        //Varaibles
-        //The name of the task
-        this.name = "Initalize Rooms";
+        super("Initalize Rooms");
         //Set localized counter part
         this.rooms = rooms;
     }
@@ -558,10 +554,7 @@ class update_Rooms extends template {
      */
     constructor(rooms) {
         //Call super
-        super();
-        //Variables
-        //The name of the task
-        this.name = "Update Rooms";
+        super("Update Rooms");
         //Set localized counter part
         this.rooms = rooms;
     }
@@ -1348,6 +1341,10 @@ class CreepManager {
             console.log(CreepManager.jobs[i].getRoom() + " - " + CreepManager.jobs[i].getGoal());
         return 0;
     }
+    static resetJobs() {
+        while (CreepManager.jobs.length > 0)
+            CreepManager.jobs.pop();
+    }
 }
 //Variables
 CreepManager.jobs = [];
@@ -1357,11 +1354,7 @@ CreepManager.creeps = [];
  * other tasks that need to be completed in the future.
  */
 class run_CreepManager extends template {
-    constructor() {
-        super(...arguments);
-        //Variables
-        this.name = "Run The Creep Manager";
-    }
+    constructor() { super("Run Creep Manager"); }
     //Real Methods
     run() {
         //Simple enough I'd say
@@ -1372,11 +1365,7 @@ class run_CreepManager extends template {
  * The creepAI CreepManager task runs the ai for all the creeps.
  */
 class creepAI_CreepManager extends template {
-    constructor() {
-        super(...arguments);
-        //Variables
-        this.name = "Run Creep AI";
-    }
+    constructor() { super("Run Creep AI"); }
     //Real Methods
     run() {
         //Simple enough I'd say
@@ -1388,11 +1377,8 @@ class creepAI_CreepManager extends template {
  * it up too much in the future.
  */
 class cleanMemory_CreepManager extends template {
-    constructor() {
-        super(...arguments);
-        //Variables
-        this.name = "Clean Creep Memory";
-    }
+    //Variables
+    constructor() { super("Clean Creep Memory"); }
     //Real Methods
     run() {
         //Simple enough I'd say
@@ -2489,6 +2475,19 @@ class RoomPlanner {
 
 //Import tasks
 var p = {};
+var EnergyStatus;
+(function (EnergyStatus) {
+    EnergyStatus[EnergyStatus["EXTREME_DROUGHT"] = 0] = "EXTREME_DROUGHT";
+    EnergyStatus[EnergyStatus["HIGH_DROUGHT"] = 0.5] = "HIGH_DROUGHT";
+    EnergyStatus[EnergyStatus["DROUGHT"] = 1] = "DROUGHT";
+    EnergyStatus[EnergyStatus["MEDIUM_DROUGHT"] = 1.5] = "MEDIUM_DROUGHT";
+    EnergyStatus[EnergyStatus["LIGHT_DROUGHT"] = 2] = "LIGHT_DROUGHT";
+    EnergyStatus[EnergyStatus["LIGHT_FLOOD"] = 2.5] = "LIGHT_FLOOD";
+    EnergyStatus[EnergyStatus["MEDIUM_FLOOD"] = 3] = "MEDIUM_FLOOD";
+    EnergyStatus[EnergyStatus["FLOOD"] = 3.5] = "FLOOD";
+    EnergyStatus[EnergyStatus["HIGH_FLOOD"] = 4] = "HIGH_FLOOD";
+    EnergyStatus[EnergyStatus["EXTREME_FLOOD"] = 4.5] = "EXTREME_FLOOD";
+})(EnergyStatus || (EnergyStatus = {}));
 /**
  * A colony is a small collection of rooms. Each colony has a number of creeps
  * it needs to spawn to be functional.
@@ -2523,8 +2522,10 @@ class Colony {
         if (this.roomPlanner.getConstruction() != undefined && c.length == 0)
             this.roomPlanner.getConstruction().pop().place();
         //Request a census every 100 ticks
-        if (Game.time % 100 == 0)
+        if (Game.time % 100 == 0) {
             Queue.request(new Run_Census(this));
+            Queue.request(new Check_Energy(this));
+        }
         if (this.roomPlanner.getDistanceTransform() == undefined)
             Queue.request(new Calculate_DistanceTransform(this));
         // if (this.roomPlanner.getMinCut() == undefined) {
@@ -2594,13 +2595,39 @@ class Colony {
         if (d != null && d.length > 0 && Game.time % 500 == 0)
             CreepManager.declareJob(new Job(Goals.STORE, this.home.name));
     }
+    checkEnergyStatus() {
+        if (this.home.storage == undefined)
+            this.energyStatus = undefined;
+        else {
+            const energy = this.home.storage.store.getUsedCapacity(RESOURCE_ENERGY);
+            if (energy > 450000)
+                this.energyStatus = EnergyStatus.EXTREME_FLOOD;
+            else if (energy > 400000)
+                this.energyStatus = EnergyStatus.HIGH_FLOOD;
+            else if (energy > 350000)
+                this.energyStatus = EnergyStatus.FLOOD;
+            else if (energy > 300000)
+                this.energyStatus = EnergyStatus.MEDIUM_FLOOD;
+            else if (energy > 250000)
+                this.energyStatus = EnergyStatus.LIGHT_FLOOD;
+            else if (energy > 200000)
+                this.energyStatus = EnergyStatus.LIGHT_DROUGHT;
+            else if (energy > 150000)
+                this.energyStatus = EnergyStatus.MEDIUM_DROUGHT;
+            else if (energy > 100000)
+                this.energyStatus = EnergyStatus.DROUGHT;
+            else if (energy > 50000)
+                this.energyStatus = EnergyStatus.HIGH_DROUGHT;
+            else
+                this.energyStatus = EnergyStatus.EXTREME_DROUGHT;
+        }
+        this.home.memory.energyStatus = this.energyStatus;
+    }
 }
 class Run_Colony extends template {
     //Constructor
     constructor(c) {
-        super();
-        //Variables
-        this.name = "Run Colony";
+        super("Run Colony");
         this.colony = c;
     }
     //Methods
@@ -2611,9 +2638,7 @@ class Run_Colony extends template {
 class Run_Census extends template {
     //Construtor
     constructor(c) {
-        super();
-        //Variables
-        this.name = "Run Census";
+        super("Run Census");
         this.colony = c;
     }
     //Methods
@@ -2621,12 +2646,17 @@ class Run_Census extends template {
         this.colony.census();
     }
 }
+class Check_Energy extends template {
+    constructor(c) {
+        super("Check Energy");
+        this.colony = c;
+    }
+    run() { this.colony.checkEnergyStatus(); }
+}
 class Calculate_DistanceTransform extends template {
     //Constructor
     constructor(c) {
-        super();
-        //Variables
-        this.name = "Calculate Distance-transform";
+        super("Calculate Distance-transform");
         this.colony = c;
     }
     //Methods
@@ -2638,9 +2668,7 @@ class Calculate_DistanceTransform extends template {
 class Calculate_FloodFill extends template {
     //Constructor
     constructor(c, p) {
-        super();
-        //Variables
-        this.name = "Calculate Flood Fill";
+        super("Calculate Flood Fill");
         this.colony = c;
         this.start = p;
     }
@@ -2674,7 +2702,7 @@ var SortTypes;
     SortTypes["PRICE"] = "price";
 })(SortTypes || (SortTypes = {}));
 class MarketManipulator {
-    static marketView(r = undefined, t = undefined) {
+    static look(r = undefined, t = undefined) {
         if (r == undefined && t == undefined)
             MarketManipulator.orders = Game.market.getAllOrders();
         else if (r != undefined && t == undefined)
@@ -2687,18 +2715,10 @@ class MarketManipulator {
             throw "Order type is not \"sell\" or \"buy\".";
         return 0;
     }
-    static sortView(t) {
+    static sort(t) {
         switch (t) {
             case SortTypes.PRICE: MarketManipulator.orders.sort((a, b) => b.price - a.price);
         }
-        return 0;
-    }
-    static buyFilter() {
-        const o = _.cloneDeep(MarketManipulator.orders);
-        MarketManipulator.orders = [];
-        for (var i = 0; i < o.length; i++)
-            if (o[i].type == ORDER_BUY)
-                MarketManipulator.orders.push(o[i]);
         return 0;
     }
     static marketSell(r, t) {
@@ -2706,18 +2726,18 @@ class MarketManipulator {
             t = Game.rooms[t].terminal;
         else
             return -1; //throw "No terminal was found in room [" + t + "]";
-        MarketManipulator.marketView(r, ORDER_BUY);
-        MarketManipulator.sortView(SortTypes.PRICE);
+        MarketManipulator.look(r, ORDER_BUY);
+        MarketManipulator.sort(SortTypes.PRICE);
         var spent = 0;
         var totalFees = 0;
         var i = 0;
         const toSpend = t.store.getUsedCapacity(r);
-        while (spent <= toSpend && MarketManipulator.orders[i] != undefined) {
+        while (spent < toSpend && MarketManipulator.orders[i] != undefined) {
             const amount = Math.min(MarketManipulator.orders[i].remainingAmount, toSpend - spent);
             const fees = Game.market.calcTransactionCost(amount, t.room.name, MarketManipulator.orders[i].roomName);
             if (totalFees + fees > t.store.getUsedCapacity(RESOURCE_ENERGY))
                 return -5;
-            Game.market.deal(MarketManipulator.orders[i].id, amount, t.roomName);
+            Game.market.deal(MarketManipulator.orders[i].id, amount, t.room.name);
             spent += amount;
             totalFees += fees;
             i++;
@@ -2745,11 +2765,11 @@ exports.colonies = void 0;
 // @ts-ignore, javascript shenanigans, ignore it typescript
 global.Stats = module.exports = StatsManager;
 // @ts-ignore
-global.queue = module.exports = queue;
+global.Queue = module.exports = queue;
 // @ts-ignore
-global.CreepManager = module.exports = CreepManager;
+global.Creeps = module.exports = CreepManager;
 // @ts-ignore
-global.MarketManager = module.exports = MarketManipulator;
+global.Market = module.exports = MarketManipulator;
 /**
  * This is the main loop for the program. Expect clean concise code, anything
  * else means I should really get to work.

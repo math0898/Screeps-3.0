@@ -19,8 +19,6 @@ export class StatsManager {
     //Check the memory locations that need to be set if any are undefined we need to init
     //Check if we think we're initalized
     if (Memory.statsInit != true) return false;
-    //Check the count of the amount of cpu used
-    else if (Memory.cpuCount == undefined) return false;
     //Check the running average of cpu
     else if (Memory.cpuAverage == undefined) return false;
     //We must be all good then
@@ -42,6 +40,8 @@ export class StatsManager {
     Memory.statsInit = true;
     //Set the tick we've started on
     Memory.startTick = Game.time;
+    //Success
+    return 0;
   }
  /**
   * Prints the stats collected, these are stored in Memory.stats.
@@ -102,13 +102,8 @@ export class StatsManager {
   * Runtime: O(c) ---> Runs in constant time
   */
 export class collect_Stats extends template implements task {
-  //Variables
-  //The name of the task
-  name:string = "Collect Stats";
-
   //Constructors
-  constructor(){super();}
-
+  constructor(){super("Collect Stats");}
   //Real methods
   run(){
     //Collect the stats... its really just that easy.
@@ -121,13 +116,8 @@ export class collect_Stats extends template implements task {
  * Runtime O(c) ---> Runs in constant time
  */
 export class print_Stats extends template implements task {
-  //Variables
-  //The name of the task
-  name:string = "Print Stats";
-
   //Constructors
-  constructor(){super();}
-
+  constructor(){super("Print Stats");}
   //Real methods
   run(){
     //Print the stats... also really just that easy.
