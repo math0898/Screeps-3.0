@@ -23,21 +23,18 @@ class Request {
     /**
      * This describes the basic construction of a priority. Similar to the Request
      * class its fairly basic and just requires the setting of local counterparts.
-     * Runtime: O(2)
      * @param t The described in the request
      * @param p The prioirty the task should be run at
      */
-    constructor(t, p) { this.task = t; this.prio = p; } //O(2)
+    constructor(t, p) { this.task = t; this.prio = p; }
     /**
      * getTask() returns the task in the Request object.
-     * Runtime: O(1)
      */
-    getTask() { return this.task; } //O(1)
+    getTask() { return this.task; }
     /**
      * The getPrio method returns the priority of the Request object.
-     * Runtime: O(1)
      */
-    getPrio() { return this.prio; } //O(1)
+    getPrio() { return this.prio; }
 }
 /**
  * This class, Queue implements a queue object which contains a list of tasks
@@ -76,32 +73,21 @@ class Queue {
     /**
      * The printQueue method prints all the items in the queue to the console in a
      * hopefully human readable format.
-     * Runtime: O(9 + 5h + 5m + 5l + 5t) or O(9 + 5n) where n is the number of
-     * tasks in all arrays
      */
     printQueue() {
-        //Nice header
-        console.log("---- Queue: ----"); //O(1)
-        //Print a sub header
-        console.log(priority.HIGH + ": "); //O(2)
-        //Iterate through the list and print
+        console.log("---- Queue: ----");
+        console.log(priority.HIGH + ": ");
         for (var j = 0; j < this.highTasks.length; j++)
-            console.log("    " + this.highTasks[j].getName()); //O(3 + 5h)
-        //Print a sub header
-        console.log(priority.MEDIUM + ": "); //O(4 + 5h)
-        //Iterate through the list and print
+            console.log("    " + this.highTasks[j].getName());
+        console.log(priority.MEDIUM + ": ");
         for (var j = 0; j < this.mediumTasks.length; j++)
-            console.log("    " + this.mediumTasks[j].getName()); //O(5 + 5h + 5m)
-        //Print a sub header
-        console.log(priority.LOW + ": "); //O(6 + 5h + 5m)
-        //Iterate through the list and print
+            console.log("    " + this.mediumTasks[j].getName());
+        console.log(priority.LOW + ": ");
         for (var j = 0; j < this.lowTasks.length; j++)
-            console.log("    " + this.lowTasks[j].getName()); //O(7 + 5h + 5m + 5l)
-        //Print a sub header
-        console.log(priority.NONE + ": "); //O(8 + 5h + 5m + 5l)
-        //Iterate through the list and print
+            console.log("    " + this.lowTasks[j].getName());
+        console.log(priority.NONE + ": ");
         for (var j = 0; j < this.tasks.length; j++)
-            console.log("    " + this.tasks[j].getName()); //O(9 + 5h + 5m + 5l + 5t)
+            console.log("    " + this.tasks[j].getName());
     }
     /**
      * This method runQueue runs the queue object with all of the given tasks. It
@@ -384,7 +370,7 @@ var state;
 /**
  * The room class. Handles information about rooms.
  */
-class struc_Room {
+class RoomPrototype {
     //Constructors
     /**
      * Constructs a room when given a hash for Game.rooms.
@@ -536,7 +522,7 @@ class init_Rooms extends template {
             //Assign it because well this is kind of annoying
             var r = Game.rooms[name];
             //Now push the rooms into the array one by one
-            this.rooms.push(new struc_Room(r.name));
+            this.rooms.push(new RoomPrototype(r.name));
         }
         return this.rooms;
     }
@@ -578,6 +564,11 @@ class update_Rooms extends template {
 /**
  * This boolean tells whether creeps should report what they are doing or not.
  */
+//-------------------------------------------------------
+//|                                                     |
+//| Creep.prototpye.sayHi = function(){this.say('hi');} |
+//|                                                     |
+//-------------------------------------------------------
 /**
  * Should the debug messages be sent to everyone?
  */
@@ -1387,73 +1378,20 @@ class cleanMemory_CreepManager extends template {
 }
 
 /**
- * This file manages the spawns that need to be completed including the queuing
- * of spawns and handling of when new spawns should happen.
+ * One spawn manager per colony and it handles the spawning of the colony's
+ * creeps.
  */
 class SpawnManager {
-    //Constructor
-    constructor(r) {
-        //Set the local counterparts
-        this.room = r;
-        //find the spawns we can use
-        this.spawns = this.room.find(FIND_MY_SPAWNS);
-        //Make a spawn queue for this manager
-        this.spawnQueue = new SpawnQueue(this.spawns);
-    }
     /**
-     * Runs the SpawnManager which looks for creeps that need to be spawned and
-     * adds them to the spawn queue.
+     * Constructs a spawnManager object which has a refrence to the home room
+     * containing the spawns it will need in the future.
      */
-    run() {
-        this.spawnQueue.print();
-        //TODO logic for spawning creeps
-        //Run the queue if it isn't empty
-        if (!(this.spawnQueue.isEmpty()))
-            this.spawnQueue.run();
-    }
-}
-/**
- * This is a queue which holds creeps that need to be spawned based on their
- * importance.
- */
-class SpawnQueue {
-    //Constructor
-    constructor(s) {
-        this.queue = [];
-        this.spawns = s;
-    }
-    //Accessor methods
-    isEmpty() { return !(this.queue.length > 0); }
-    print() {
-        for (var i = 0; i < this.queue.length; i++) {
-            console.log(this.queue[i].role);
-        }
-    }
-    //Methods
-    add(c) { this.queue.push(c); }
-    run() {
-        //Find an unused spawn
-        for (var i = 0; i < this.spawns.length; i++) {
-            //Check if there's anything left, return if there isn't
-            if (this.queue[0] == undefined)
-                return;
-            //Do this for some nice short hand
-            var spawn = this.spawns[i];
-            //Grab the creep real quick
-            var c = this.queue.pop();
-            console.log((spawn.spawnCreep(c.body, Game.time + "", { dryRun: true })));
-            console.log(c.body);
-            //Spawn the creep, if we can
-            if (spawn.spawnCreep(c.body, Game.time + "", { dryRun: true }) == OK)
-                c.run(spawn);
-        }
-    }
-    contains(r) {
-        for (var i = 0; i < this.queue.length; i++) {
-            if (this.queue[i].role == r)
-                return true;
-        }
-        return false;
+    constructor(r) {
+        /**
+         * The stack which contains all the CreepSpawn objects.
+         */
+        this.stack = [];
+        this.roomPrototype = r;
     }
 }
 
@@ -2433,30 +2371,21 @@ class RoomPlanner {
      * @exception "Bunker Center not defined."
      */
     constructionProjects8() {
-        //Check if construction is defined... it should be
         if (this.construction == undefined)
             throw "Construction is not defined.";
-        //If we're using the bunker pattern
         if (this.roomType == patterns.BUNKER) {
-            //Throw an error if we don't have bunker center defined for some reason.
             if (this.bunkerCenter == undefined)
                 throw "Bunker Center not defined.";
-            //Nuker position in the bunker
             this.construction.push(new ConstructionProject(new RoomPosition(this.bunkerCenter.x, this.bunkerCenter.y + 5, this.bunkerCenter.roomName), STRUCTURE_NUKER));
-            //Power spawn position in the bunker
             this.construction.push(new ConstructionProject(new RoomPosition(this.bunkerCenter.x, this.bunkerCenter.y + 2, this.bunkerCenter.roomName), STRUCTURE_POWER_SPAWN));
-            //Observer position in the bunker
             this.construction.push(new ConstructionProject(new RoomPosition(this.bunkerCenter.x + 5, this.bunkerCenter.y + 5, this.bunkerCenter.roomName), STRUCTURE_OBSERVER));
-            //Four labs and their positions
             this.construction.push(new ConstructionProject(new RoomPosition(this.bunkerCenter.x + 3, this.bunkerCenter.y + 5, this.bunkerCenter.roomName), STRUCTURE_LAB));
             this.construction.push(new ConstructionProject(new RoomPosition(this.bunkerCenter.x + 4, this.bunkerCenter.y + 5, this.bunkerCenter.roomName), STRUCTURE_LAB));
             this.construction.push(new ConstructionProject(new RoomPosition(this.bunkerCenter.x + 5, this.bunkerCenter.y + 4, this.bunkerCenter.roomName), STRUCTURE_LAB));
             this.construction.push(new ConstructionProject(new RoomPosition(this.bunkerCenter.x + 5, this.bunkerCenter.y + 3, this.bunkerCenter.roomName), STRUCTURE_LAB));
-            //Three towers and their positions
             this.construction.push(new ConstructionProject(new RoomPosition(this.bunkerCenter.x + 1, this.bunkerCenter.y, this.bunkerCenter.roomName), STRUCTURE_TOWER));
             this.construction.push(new ConstructionProject(new RoomPosition(this.bunkerCenter.x - 1, this.bunkerCenter.y, this.bunkerCenter.roomName), STRUCTURE_TOWER));
             this.construction.push(new ConstructionProject(new RoomPosition(this.bunkerCenter.x, this.bunkerCenter.y + 1, this.bunkerCenter.roomName), STRUCTURE_TOWER));
-            //Ten extensions and their positions
             this.construction.push(new ConstructionProject(new RoomPosition(this.bunkerCenter.x - 5, this.bunkerCenter.y - 5, this.bunkerCenter.roomName), STRUCTURE_EXTENSION));
             this.construction.push(new ConstructionProject(new RoomPosition(this.bunkerCenter.x + 5, this.bunkerCenter.y - 5, this.bunkerCenter.roomName), STRUCTURE_EXTENSION));
             this.construction.push(new ConstructionProject(new RoomPosition(this.bunkerCenter.x - 2, this.bunkerCenter.y - 6, this.bunkerCenter.roomName), STRUCTURE_EXTENSION));
@@ -2467,7 +2396,6 @@ class RoomPlanner {
             this.construction.push(new ConstructionProject(new RoomPosition(this.bunkerCenter.x - 6, this.bunkerCenter.y + 2, this.bunkerCenter.roomName), STRUCTURE_EXTENSION));
             this.construction.push(new ConstructionProject(new RoomPosition(this.bunkerCenter.x + 2, this.bunkerCenter.y + 6, this.bunkerCenter.roomName), STRUCTURE_EXTENSION));
             this.construction.push(new ConstructionProject(new RoomPosition(this.bunkerCenter.x - 2, this.bunkerCenter.y + 6, this.bunkerCenter.roomName), STRUCTURE_EXTENSION));
-            //The third spawn's position
             this.construction.push(new ConstructionProject(new RoomPosition(this.bunkerCenter.x + 2, this.bunkerCenter.y, this.bunkerCenter.roomName), STRUCTURE_SPAWN));
         }
     }
@@ -2497,11 +2425,11 @@ class Colony {
     constructor(r) {
         this.home = r;
         this.era = -1;
-        this.homePrototype = new struc_Room(r.name);
+        this.homePrototype = new RoomPrototype(r.name);
         if (r.controller != undefined)
             if (r.controller.level <= 2)
                 this.era = 0;
-        this.spawnManager = new SpawnManager(Game.rooms[this.homePrototype.getRoomRefrence()]);
+        this.spawnManager = new SpawnManager(this.homePrototype);
         this.home.memory.counts = p;
         this.roomPlanner = new RoomPlanner(this.home);
     }
@@ -2537,7 +2465,7 @@ class Colony {
         // }
         if (Game.flags["Flood"] != undefined)
             if (Game.flags["Flood"].room.name == this.home.name)
-                Queue.request(new Calculate_FloodFill(this, Game.flags["Flood"].pos));
+                Queue.request(new Calculate_FloodFill(this));
         this.checkGoals();
         //Run the spawn manger.
         spawn(this.home);
@@ -2665,17 +2593,18 @@ class Calculate_DistanceTransform extends template {
             Queue.request(new Calculate_DistanceTransform(this.colony));
     }
 }
+/**
+ * Describes a basic floodfill algorithm run request. The colony is required to
+ * know what roomPlanner is being asked to compute the flood and the
+ */
 class Calculate_FloodFill extends template {
-    //Constructor
-    constructor(c, p) {
+    constructor(c) {
         super("Calculate Flood Fill");
         this.colony = c;
-        this.start = p;
     }
-    //Methods
     run() {
         if (this.colony.roomPlanner.computeFloodfill() != 0)
-            Queue.request(new Calculate_FloodFill(this.colony, this.start));
+            Queue.request(new Calculate_FloodFill(this.colony));
     }
 }
 // export class Calculate_MinCut extends template implements task {

@@ -53,7 +53,7 @@ the system is fairly basic since its kind of hard to test market code in a
 private server. In the future you can expect some real shenanigans going on
 here.
 
-###### Market Sell
+#### Market Sell
 Sells all of the resource until it runs out of energy to pay fees or runs out of
 the resource regardless of cost. Still needs some tweaking to be considered
 fully functional.
