@@ -11,9 +11,7 @@ export class VisualsManager {
    * @param floodFill - The flood fill algorithm result
    */
   run(roomName:string, distanceTransform:number[][] | undefined = undefined, floodFill:number[][] | undefined = undefined){
-    //If the DistanceTransform flag is down call the drawing function
     if (Game.flags["DistanceTransform"] != undefined) this.distanceTransform(distanceTransform, roomName);
-    //If the FloodFill flag is down call the drawing function
     else if (Game.flags["FloodFill"] != undefined) this.floodFill(floodFill, roomName);
   }
   /**
@@ -22,13 +20,8 @@ export class VisualsManager {
    * @param roomName - The room the data is being drawn to
    */
   private distanceTransform(distanceTransform:number[][] | undefined, roomName:string){
-    //If the transform is defined, iterate through all the elements
     if (distanceTransform != undefined) for (var i = 0; i < 50; i++) for (var j = 0; j < 50; j++) {
-      //Depending on the value of the cell we want to draw a different color cirlce here
       switch(distanceTransform[i][j]){
-        //Draw a gradient of colors depending on the cell's value. Nothing is drawn for walls/boundaries
-        // -1 is only used in the non iterative solution to the distance transform. The gradient
-        // used here is the far right row of web safe colors on this website https://htmlcolors.com/color-chart
         case -1: new RoomVisual(roomName).circle(j,i, {fill: "#607D8B", opacity: 80}); break;
         case 0: break;
         case 1: new RoomVisual(roomName).circle(j,i, {fill: "#B71C1C", opacity: 80}); break;
@@ -55,15 +48,10 @@ export class VisualsManager {
    * @param roomName - The room being drawn to
    */
   private floodFill(floodFill:number[][] | undefined, roomName:string){
-    //If flood fill is defined iterate through cells
     if (floodFill != undefined) for (var i = 0; i < 50; i++) for (var j = 0; j < 50; j++) {
-      //Make a different circle depending on the drawing
       switch(floodFill[i][j]){
-        //Walls have no color
         case 0: break;
-        //Infected are green
         case -1: new RoomVisual(roomName).circle(j,i, {fill: "#388E3C", opacity: 80}); break;
-        //Not infected a nice blue color
         case 1: new RoomVisual(roomName).circle(j,i, {fill: "#303F9F", opacity: 80}); break;
       }
     }

@@ -8,8 +8,7 @@ const debug:boolean = true;
  * that could use them.
  */
 export class Extractor extends Creep_Prototype implements Creep_Role {
-  //Variables
-  name:string = "Extractor";
+  constructor() { super("Extractor"); }
 
   //Real Methods
   run(creep:Creep){

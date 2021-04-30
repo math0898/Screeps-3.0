@@ -8,8 +8,7 @@ const debug:boolean = true;
  * that could use them.
  */
 export class Defender extends Creep_Prototype implements Creep_Role {
-  //Variables
-  name:string = "Defender";
+  constructor() { super("Defender"); }
 
   //Real Methods
   run(creep:Creep){

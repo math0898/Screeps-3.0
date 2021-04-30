@@ -7,8 +7,7 @@ import { Creep_Role, Creep_Prototype } from "CreepTypes/CreepRole";
  *instead of storing them in cache as an object.
  */
 export class Scout extends Creep_Prototype implements Creep_Role {
-  //Variables
-  name:string = "Scout";
+  constructor() { super("Scout"); }
 
   //Real Methods
   run(creep:Creep){

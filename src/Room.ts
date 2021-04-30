@@ -71,6 +71,10 @@ export class RoomPrototype {
    * Runtime: O(c) ---> Runs in constant time.
    */
    getRoomLevel(){ return this.roomLevel; }
+   /**
+    * Returns the spawns.
+    */
+   getSpawns(){ return this.roomSpawns; }
   /**
    * Prints the stats about the room in a nice human readable format.
    * Runtime: O(c) ---> Runs in constant time.
@@ -127,11 +131,7 @@ export class RoomPrototype {
     if(Game.rooms[this.roomRefrence].controller != undefined){
       //Update the room level to the controller level
       this.roomLevel = Game.rooms[this.roomRefrence].controller?.level;
-      //If there's a controller there can be spawns
-      //Reset the current spawns
-      this.roomSpawns = [];
-      //Find my spawns and set room spawns
-      this.roomSpawns = Game.rooms[this.roomRefrence].find(FIND_MY_SPAWNS);
+      this.updateSpawns();
     }
     //Reset the total creep count for the room
     this.creepCount = 0;
@@ -140,6 +140,14 @@ export class RoomPrototype {
       //Check if their memory has a refrence to the room and increment if it does
       if (Game.creeps[c].memory.room == this.roomRefrence) this.creepCount++;
     }
+  }
+  /**
+   * Updates the spawns.
+   */
+  updateSpawns() {
+    this.roomSpawns = [];
+    this.roomSpawns = Game.rooms[this.roomRefrence].find(FIND_MY_SPAWNS);
+    return 0;
   }
 }
 /**

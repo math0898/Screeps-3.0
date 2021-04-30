@@ -32,48 +32,38 @@ export abstract class Creep_Prototype {
    * extend this one should add an appropriate role string.
    */
   private role:string = "";
-
+  /**
+   * Constructs a Creep_Prototype object.
+   */
+  constructor(r:string) {
+    this.role = r;
+  }
   /**
    * getRole retruns the role stored in the role string of the object.
-   * Runtime: O(1)
    */
-  getRole(){
-    //This aint rocket science, return the role
-    return this.role; //O(1)
-  }
+  getRole() { return this.role; }
   /**
    * The compareRoomPos() function takes two room positions and compares them.
    * It returns true if and only if they are equal. If either are undefined the
    * function returns false.
-   * Runtime: O(c)
    * @param a - The first room to compare
    * @param b - The second room to compare
    */
   private static compareRoomPos(a?:RoomPosition, b?:RoomPosition){
-    //Check if both parameters are defined
-    if(a != undefined && b != undefined){
-      //Check the x positions
+    if(a != undefined && b != undefined) {
       if(a.x != b.x) return false;
-      //Check the y positions
       if(a.y != b.y) return false;
-      //Check the room names
       if(a.roomName != b.roomName) return false;
-      //Then the positions are equal
       return true;
-    //One of the parameters is undefined, return false.
     } else return false;
   }
   /**
    * This is a small utility function which when called on a creep checks how
    * much longer they have to life. If it is equal to some threashold then the
    * count in the room memory for that creep is reduced.
-   * Runtime: O(c)
    * @param creep - The creep's life to check
    */
-   static checkLife(creep:Creep) {
-     //Check how long the creep has to live and decrement if necessary
-     if(creep.body.length * 3 == creep.ticksToLive) Game.rooms[creep.memory.room].memory.counts["Worker"]--;
-   }
+   static checkLife(creep:Creep) { if(creep.body.length * 3 == creep.ticksToLive) Game.rooms[creep.memory.room].memory.counts["Worker"]--; }
   /**
    * creepOptimizedMove optimizes the movement that creeps do. This is primarly
    * done but greatly reducing the number of times a creep recalcualtes its
@@ -81,28 +71,22 @@ export abstract class Creep_Prototype {
    * better than the default moveTo(pos) for multiple rooms. I don't know why
    * this is... it just happens to be. Should not be used for actions that
    * require very reponsive creep movement such as combat!
-   * Runtime: O(c)
    * @param creep - The creep being moved
    * @param target - The target position you want the creep to reach.
    */
   static creepOptimizedMove(creep:Creep, target:RoomPosition){
-    //If the creep is fatigued exit
     if (creep.fatigue > 0) return;
-    //Check if there's a path for this position or if we've reached the end of one
+
     if (!(this.compareRoomPos(creep.memory.pathTarget, target)) || creep.memory.pathStep == creep.memory.path?.length) {
-      //Generate a path and save it to memory
       creep.memory.path = creep.pos.findPathTo(target, {ignoreCreeps: false});
-      //Update the target of the path saved in memory
       creep.memory.pathTarget = target;
-      //Start our step counter from 0
       creep.memory.pathStep = 0;
     }
-    //Read memory
+
     var step:number | undefined = creep.memory.pathStep;
     var path:PathStep[] | undefined = creep.memory.path;
-    //Quickly make some basic checks that we can actually move
+
     if(path != undefined && step != undefined) {
-      //Move the creep and increase the step
       if (path[step] != undefined) {
         creep.move(path[step].direction);
         creep.memory.pathStep!++;
@@ -112,88 +96,62 @@ export abstract class Creep_Prototype {
   /**
    * The method creepFill makes the given creep fill nearby strucutres. The
    * strucuture it fills is determined by findClosestByPath.
-   * Runtime: O(c)
-   * Note: n comes from the use of the RoomPosition.find method.
    * @param creep The creep actions are taken on
    */
   static creepFill(creep:Creep){
-    //Send a message saying we're filling if we are
     if (debug) creep.say('⚙ ⛴', publicDebug);
-    //Check to see if we have a target defined
+
     if (creep.memory.emptyStructure == undefined){
-      //Find the nearest strucutre without full energy
       var s = creep.pos.findClosestByPath(FIND_MY_STRUCTURES, {filter: (s) => (s.structureType == STRUCTURE_SPAWN || s.structureType == STRUCTURE_EXTENSION || s.structureType == STRUCTURE_TOWER) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0});
-      //Set memory if s is not null
       if (s != null) creep.memory.emptyStructure = s.id;
     }
-    //Make sure we have a target structure before going on
+
     if (creep.memory.emptyStructure != undefined) {
-      //Read memory
       var x:StructureExtension | StructureSpawn | null = Game.getObjectById(creep.memory.emptyStructure);
-      //Check if the structure exists
       if (x != null && x!.store.getFreeCapacity(RESOURCE_ENERGY) != 0) {
-        //Check if we're near the structure and move to it if we aren't
         if (!(creep.pos.isNearTo(x))) this.creepOptimizedMove(creep, x.pos);
-        //Transfer the resource
         else creep.transfer(x, RESOURCE_ENERGY);
-        //If the structure is null reset the memory
-    } else creep.memory.emptyStructure = undefined;
-    //Looks like stuff is good
-    return 0;
+      } else creep.memory.emptyStructure = undefined;
+      return 0;
     }
-  //Something went wrong
-  return -1;
+    return -1;
   }
   /**
    * This method makes the creep pick up nearby dropped resources. As a method
    * of resource collection it works faster than mining and helps to reduce lost
    * resources to decay.
-   * Runtime: O(c)
-   * Note: It is unknown how many calculations RoomPosition.findPathTo() is
-   * making so its denoted as 'c'.
    * @param creep The creep which is picking up resources
    * @param filter The resource the creep is picking up. Defaults to energy
    */
-  static creepPickup(creep:Creep, filter:string = RESOURCE_ENERGY){
-    //Say we're picking stuff up
+  static creepPickup(creep:Creep, filter:string = RESOURCE_ENERGY) {
     if(debug) creep.say('♻', publicDebug);
-    //Check if dropped is undefined
+
     if (creep.memory.droppedResource == undefined) {
-      //Find nearby dropped resources of type filter
       var d:Resource | null = creep.pos.findClosestByPath(FIND_DROPPED_RESOURCES, {filter: {resourceType: filter}});
-      //Set dropped resoucres if d is not null
       if (d != null) creep.memory.droppedResource = d.id;
+
       else {
         const t:Tombstone | null = creep.pos.findClosestByPath(FIND_TOMBSTONES);
         if (t != null) if (t.store.getUsedCapacity(RESOURCE_ENERGY) > 0) creep.memory.tombstone = t.id;
       }
     }
-    //Make sure dropped is defined before moving on
-    if (creep.memory.droppedResource != undefined) { //O(3) -> O(7 + n)
-      //Read memory
+
+    if (creep.memory.droppedResource != undefined) {
       var d:Resource | null = Game.getObjectById(creep.memory.droppedResource);
-      //Check if the resource exists
       if (d != null) {
-        //Check if we're near the resource and move to it if we aren't
         if (!(creep.pos.isNearTo(d))) this.creepOptimizedMove(creep, d.pos);
-        //Pickup the resource
         else creep.pickup(d);
       } else {
-        //We didn't get anything back from the Game.getObjectById so reset the id
         creep.memory.droppedResource = undefined;
       }
+
     } else if (creep.memory.tombstone != undefined){
-      //Read memory
       var t:Tombstone | null = Game.getObjectById(creep.memory.tombstone);
-      //Check if the resource exists
       if (t != null) {
-        //Check if we're near the resource and move to it if we aren't
         if (!(creep.pos.isNearTo(t))) this.creepOptimizedMove(creep, t.pos);
-        //Pickup the resource
         else creep.withdraw(t, RESOURCE_ENERGY);
       } else {
-        //We didn't get anything back from the Game.getObjectById so reset the id
-        creep.memory.droppedResource = undefined;
+        creep.memory.tombstone = undefined;
       }
     }
   }
@@ -201,7 +159,6 @@ export abstract class Creep_Prototype {
    * creepHarvest navigates the creep to the nearest source and makes it mine
    * it. If the creep does nothing during this method a couple of different
    * return options are available.
-   * Runtime: O(c)
    * @param creep The creep to be doing the harvesting
    * @return 0 Harvesting completed successfully
    * @return -1 A game object could not be found
@@ -394,20 +351,11 @@ export abstract class Creep_Prototype {
     return 0;
   }
   static run(creep:Creep){
-    //If goal in creep memory was undefined we can upgrade for now
     if (creep.memory.goal == undefined) creep.memory.goal = Goals.UPGRADE;
-    //Check if we're full on energy
     if (creep.store.getFreeCapacity() == 0) creep.memory.working = true;
-    //If we're out of energy obtain more
     else if (creep.store.getUsedCapacity() == 0 || creep.memory.working == undefined) creep.memory.working = false;
-    if (creep.memory.goal == Goals.TRADE) {
-      this.trader(creep); return;
-    }
-    //Lets Spend some energy
     if(creep.memory.working) {
-      //Switch through possible goals and our actions based on them
       switch(creep.memory.goal) {
-        //If goal is undefined... it shouldn't be make a confused face and hope math fixes it
         case undefined: creep.say("⁉"); return;
         case Goals.BUILD:
           if (Creep_Prototype.creepBuild(creep) != 0) creep.memory.goal = undefined;
@@ -429,20 +377,22 @@ export abstract class Creep_Prototype {
           break;
       }
     }
-    //Lets get some energy
     else {
-      //We're mining
-      if (debug) creep.say('⛏', publicDebug);
-      if (Creep_Prototype.creepHarvest(creep) != 0) Creep_Prototype.creepPickup(creep);
+      if (creep.room.memory.energyStatus == undefined || creep.room.memory.energyStatus < 1 || creep.memory.goal == Goals.STORE) {
+        if (debug) creep.say('⛏', publicDebug);
+        if (Creep_Prototype.creepHarvest(creep) != 0) Creep_Prototype.creepPickup(creep);
+      }
+      else {
+        if (debug) creep.say('🗜', publicDebug);
+        if (creep.withdraw(creep.room.storage!, RESOURCE_ENERGY, creep.store.getFreeCapacity()) == ERR_NOT_IN_RANGE) creep.moveTo(creep.room.storage!);
+      }
     }
   }
 }
-
 /**
  * This interface extends the CreepRole class requiring a few things from the
  * roles ensuring functionality.
  */
 export interface Creep_Role extends Creep_Prototype {
-  //Real methods
   run(creep:Creep):void
 }

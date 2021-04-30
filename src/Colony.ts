@@ -5,7 +5,6 @@ import { RoomPrototype } from "Room";
 //Import the spawn manager
 import { SpawnManager } from "SpawnManager";
 import { CreepManager, Job } from "CreepManager";
-import { spawn } from "logic.spawn";
 import { Queue } from "Queue";
 import { VisualsManager } from "VisualsManager";
 import { RoomPlanner } from "RoomPlanner";
@@ -71,7 +70,9 @@ export class Colony{
     if (Game.flags["Flood"] != undefined) if (Game.flags["Flood"].room!.name == this.home.name) Queue.request(new Calculate_FloodFill(this));
     this.checkGoals();
     //Run the spawn manger.
-    spawn(this.home);
+    this.census();
+    this.spawnManager.check();
+    this.spawnManager.spawn();
     if (Game.flags["Visuals"] != undefined) new VisualsManager().run(this.home.name, this.roomPlanner.getDistanceTransform(), this.roomPlanner.getFloodFill());
   }
   /**
@@ -79,18 +80,19 @@ export class Colony{
    * this.home to their numbers.
    */
   census(){
-    this.home.memory.counts["Miner"] = 0;
-    this.home.memory.counts["Carrier"] = 0;
-    this.home.memory.counts["Jumpstart"] = 0;
     this.home.memory.counts["Worker"] = 0;
-    this.home.memory.counts["RepairBot"] = 0;
-    this.home.memory.counts["Scout"] = 0;
     this.home.memory.counts["Extractor"] = 0;
+    this.home.memory.counts["Store"] = 0;
+    this.home.memory.counts["Fill"] = 0;
 
     for(let c in Game.creeps){
       var creep:Creep = Game.creeps[c];
       if (creep.memory.room != this.home.name) continue;
-      if (creep.memory.role == undefined) this.home.memory.counts["Worker"]++;
+      if (creep.memory.role == undefined) {
+        this.home.memory.counts["Worker"]++;
+        if (creep.memory.goal == "Store") this.home.memory.counts["Store"] += 1;
+        else if (creep.memory.goal == "Fill") this.home.memory.counts["Fill"] += 1;
+      }
       else this.home.memory.counts[creep.memory.role]++;
     }
   }
@@ -107,13 +109,15 @@ export class Colony{
      const c:ConstructionSite[] | null = this.home.find(FIND_CONSTRUCTION_SITES);
      const d:Source[] | null = this.home.find(FIND_SOURCES_ACTIVE);
      const s:Structure[] | null = this.home.find(FIND_MY_STRUCTURES, {filter: (s) => (s.structureType == STRUCTURE_SPAWN || s.structureType == STRUCTURE_EXTENSION || s.structureType == STRUCTURE_TOWER) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0}); //O(7 + 3n)
-     if (this.home.terminal != undefined && Game.time % 1500 == 0) if (this.home.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < 10000) CreepManager.declareJob(new Job(Goals.TRADE, this.home.name));
+     if (this.home.terminal != undefined && Game.time % 1500 == 0) if (this.home.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < 200000) CreepManager.declareJob(new Job(Goals.TRADE, this.home.name));
+     const h:number = this.home.memory.counts["Store"];
      //Check the goals that need to be taken
      if (w != null && w.length > 0 && Game.time % 500 == 0) CreepManager.declareJob(new Job(Goals.REINFORCE, this.home.name));
      if (r != null && r.length > 0 && Game.time % 500 == 0) CreepManager.declareJob(new Job(Goals.FIX, this.home.name));
      if (c != null && c.length > 0 && Game.time % 250 == 0) CreepManager.declareJob(new Job(Goals.BUILD, this.home.name));
      if (s != null && s.length > 0 && Game.time % 25 == 0) CreepManager.declareJob(new Job(Goals.FILL, this.home.name));
-     if (d != null && d.length > 0 && Game.time % 500 == 0) CreepManager.declareJob(new Job(Goals.STORE, this.home.name));
+     // if (d != null && d.length > 0 && Game.time % 500 == 0) CreepManager.declareJob(new Job(Goals.STORE, this.home.name));
+     if (h < 4 && Game.time % 25 == 0) CreepManager.declareJob(new Job(Goals.STORE, this.home.name));
     }
     checkEnergyStatus() {
       if (this.home.storage == undefined) this.energyStatus = undefined;

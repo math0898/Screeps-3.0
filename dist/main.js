@@ -420,6 +420,10 @@ class RoomPrototype {
      */
     getRoomLevel() { return this.roomLevel; }
     /**
+     * Returns the spawns.
+     */
+    getSpawns() { return this.roomSpawns; }
+    /**
      * Prints the stats about the room in a nice human readable format.
      * Runtime: O(c) ---> Runs in constant time.
      */
@@ -479,11 +483,7 @@ class RoomPrototype {
         if (Game.rooms[this.roomRefrence].controller != undefined) {
             //Update the room level to the controller level
             this.roomLevel = (_a = Game.rooms[this.roomRefrence].controller) === null || _a === void 0 ? void 0 : _a.level;
-            //If there's a controller there can be spawns
-            //Reset the current spawns
-            this.roomSpawns = [];
-            //Find my spawns and set room spawns
-            this.roomSpawns = Game.rooms[this.roomRefrence].find(FIND_MY_SPAWNS);
+            this.updateSpawns();
         }
         //Reset the total creep count for the room
         this.creepCount = 0;
@@ -493,6 +493,14 @@ class RoomPrototype {
             if (Game.creeps[c].memory.room == this.roomRefrence)
                 this.creepCount++;
         }
+    }
+    /**
+     * Updates the spawns.
+     */
+    updateSpawns() {
+        this.roomSpawns = [];
+        this.roomSpawns = Game.rooms[this.roomRefrence].find(FIND_MY_SPAWNS);
+        return 0;
     }
 }
 /**
@@ -595,45 +603,38 @@ var Goals;
  * file.
  */
 class Creep_Prototype {
-    constructor() {
+    /**
+     * Constructs a Creep_Prototype object.
+     */
+    constructor(r) {
         /**
          * This is the role string which holdes the name of the role being defined.
          * Since this is the abstract class it is empty, but all other classes which
          * extend this one should add an appropriate role string.
          */
         this.role = "";
+        this.role = r;
     }
     /**
      * getRole retruns the role stored in the role string of the object.
-     * Runtime: O(1)
      */
-    getRole() {
-        //This aint rocket science, return the role
-        return this.role; //O(1)
-    }
+    getRole() { return this.role; }
     /**
      * The compareRoomPos() function takes two room positions and compares them.
      * It returns true if and only if they are equal. If either are undefined the
      * function returns false.
-     * Runtime: O(c)
      * @param a - The first room to compare
      * @param b - The second room to compare
      */
     static compareRoomPos(a, b) {
-        //Check if both parameters are defined
         if (a != undefined && b != undefined) {
-            //Check the x positions
             if (a.x != b.x)
                 return false;
-            //Check the y positions
             if (a.y != b.y)
                 return false;
-            //Check the room names
             if (a.roomName != b.roomName)
                 return false;
-            //Then the positions are equal
             return true;
-            //One of the parameters is undefined, return false.
         }
         else
             return false;
@@ -642,14 +643,10 @@ class Creep_Prototype {
      * This is a small utility function which when called on a creep checks how
      * much longer they have to life. If it is equal to some threashold then the
      * count in the room memory for that creep is reduced.
-     * Runtime: O(c)
      * @param creep - The creep's life to check
      */
-    static checkLife(creep) {
-        //Check how long the creep has to live and decrement if necessary
-        if (creep.body.length * 3 == creep.ticksToLive)
-            Game.rooms[creep.memory.room].memory.counts["Worker"]--;
-    }
+    static checkLife(creep) { if (creep.body.length * 3 == creep.ticksToLive)
+        Game.rooms[creep.memory.room].memory.counts["Worker"]--; }
     /**
      * creepOptimizedMove optimizes the movement that creeps do. This is primarly
      * done but greatly reducing the number of times a creep recalcualtes its
@@ -657,30 +654,21 @@ class Creep_Prototype {
      * better than the default moveTo(pos) for multiple rooms. I don't know why
      * this is... it just happens to be. Should not be used for actions that
      * require very reponsive creep movement such as combat!
-     * Runtime: O(c)
      * @param creep - The creep being moved
      * @param target - The target position you want the creep to reach.
      */
     static creepOptimizedMove(creep, target) {
         var _a;
-        //If the creep is fatigued exit
         if (creep.fatigue > 0)
             return;
-        //Check if there's a path for this position or if we've reached the end of one
         if (!(this.compareRoomPos(creep.memory.pathTarget, target)) || creep.memory.pathStep == ((_a = creep.memory.path) === null || _a === void 0 ? void 0 : _a.length)) {
-            //Generate a path and save it to memory
             creep.memory.path = creep.pos.findPathTo(target, { ignoreCreeps: false });
-            //Update the target of the path saved in memory
             creep.memory.pathTarget = target;
-            //Start our step counter from 0
             creep.memory.pathStep = 0;
         }
-        //Read memory
         var step = creep.memory.pathStep;
         var path = creep.memory.path;
-        //Quickly make some basic checks that we can actually move
         if (path != undefined && step != undefined) {
-            //Move the creep and increase the step
             if (path[step] != undefined) {
                 creep.move(path[step].direction);
                 creep.memory.pathStep++;
@@ -690,61 +678,40 @@ class Creep_Prototype {
     /**
      * The method creepFill makes the given creep fill nearby strucutres. The
      * strucuture it fills is determined by findClosestByPath.
-     * Runtime: O(c)
-     * Note: n comes from the use of the RoomPosition.find method.
      * @param creep The creep actions are taken on
      */
     static creepFill(creep) {
-        //Send a message saying we're filling if we are
         creep.say('⚙ ⛴', publicDebug);
-        //Check to see if we have a target defined
         if (creep.memory.emptyStructure == undefined) {
-            //Find the nearest strucutre without full energy
             var s = creep.pos.findClosestByPath(FIND_MY_STRUCTURES, { filter: (s) => (s.structureType == STRUCTURE_SPAWN || s.structureType == STRUCTURE_EXTENSION || s.structureType == STRUCTURE_TOWER) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0 });
-            //Set memory if s is not null
             if (s != null)
                 creep.memory.emptyStructure = s.id;
         }
-        //Make sure we have a target structure before going on
         if (creep.memory.emptyStructure != undefined) {
-            //Read memory
             var x = Game.getObjectById(creep.memory.emptyStructure);
-            //Check if the structure exists
             if (x != null && x.store.getFreeCapacity(RESOURCE_ENERGY) != 0) {
-                //Check if we're near the structure and move to it if we aren't
                 if (!(creep.pos.isNearTo(x)))
                     this.creepOptimizedMove(creep, x.pos);
-                //Transfer the resource
                 else
                     creep.transfer(x, RESOURCE_ENERGY);
-                //If the structure is null reset the memory
             }
             else
                 creep.memory.emptyStructure = undefined;
-            //Looks like stuff is good
             return 0;
         }
-        //Something went wrong
         return -1;
     }
     /**
      * This method makes the creep pick up nearby dropped resources. As a method
      * of resource collection it works faster than mining and helps to reduce lost
      * resources to decay.
-     * Runtime: O(c)
-     * Note: It is unknown how many calculations RoomPosition.findPathTo() is
-     * making so its denoted as 'c'.
      * @param creep The creep which is picking up resources
      * @param filter The resource the creep is picking up. Defaults to energy
      */
     static creepPickup(creep, filter = RESOURCE_ENERGY) {
-        //Say we're picking stuff up
         creep.say('♻', publicDebug);
-        //Check if dropped is undefined
         if (creep.memory.droppedResource == undefined) {
-            //Find nearby dropped resources of type filter
             var d = creep.pos.findClosestByPath(FIND_DROPPED_RESOURCES, { filter: { resourceType: filter } });
-            //Set dropped resoucres if d is not null
             if (d != null)
                 creep.memory.droppedResource = d.id;
             else {
@@ -754,39 +721,28 @@ class Creep_Prototype {
                         creep.memory.tombstone = t.id;
             }
         }
-        //Make sure dropped is defined before moving on
-        if (creep.memory.droppedResource != undefined) { //O(3) -> O(7 + n)
-            //Read memory
+        if (creep.memory.droppedResource != undefined) {
             var d = Game.getObjectById(creep.memory.droppedResource);
-            //Check if the resource exists
             if (d != null) {
-                //Check if we're near the resource and move to it if we aren't
                 if (!(creep.pos.isNearTo(d)))
                     this.creepOptimizedMove(creep, d.pos);
-                //Pickup the resource
                 else
                     creep.pickup(d);
             }
             else {
-                //We didn't get anything back from the Game.getObjectById so reset the id
                 creep.memory.droppedResource = undefined;
             }
         }
         else if (creep.memory.tombstone != undefined) {
-            //Read memory
             var t = Game.getObjectById(creep.memory.tombstone);
-            //Check if the resource exists
             if (t != null) {
-                //Check if we're near the resource and move to it if we aren't
                 if (!(creep.pos.isNearTo(t)))
                     this.creepOptimizedMove(creep, t.pos);
-                //Pickup the resource
                 else
                     creep.withdraw(t, RESOURCE_ENERGY);
             }
             else {
-                //We didn't get anything back from the Game.getObjectById so reset the id
-                creep.memory.droppedResource = undefined;
+                creep.memory.tombstone = undefined;
             }
         }
     }
@@ -794,7 +750,6 @@ class Creep_Prototype {
      * creepHarvest navigates the creep to the nearest source and makes it mine
      * it. If the creep does nothing during this method a couple of different
      * return options are available.
-     * Runtime: O(c)
      * @param creep The creep to be doing the harvesting
      * @return 0 Harvesting completed successfully
      * @return -1 A game object could not be found
@@ -1027,24 +982,14 @@ class Creep_Prototype {
         return 0;
     }
     static run(creep) {
-        //If goal in creep memory was undefined we can upgrade for now
         if (creep.memory.goal == undefined)
             creep.memory.goal = Goals.UPGRADE;
-        //Check if we're full on energy
         if (creep.store.getFreeCapacity() == 0)
             creep.memory.working = true;
-        //If we're out of energy obtain more
         else if (creep.store.getUsedCapacity() == 0 || creep.memory.working == undefined)
             creep.memory.working = false;
-        if (creep.memory.goal == Goals.TRADE) {
-            this.trader(creep);
-            return;
-        }
-        //Lets Spend some energy
         if (creep.memory.working) {
-            //Switch through possible goals and our actions based on them
             switch (creep.memory.goal) {
-                //If goal is undefined... it shouldn't be make a confused face and hope math fixes it
                 case undefined:
                     creep.say("⁉");
                     return;
@@ -1074,12 +1019,17 @@ class Creep_Prototype {
                     break;
             }
         }
-        //Lets get some energy
         else {
-            //We're mining
-            creep.say('⛏', publicDebug);
-            if (Creep_Prototype.creepHarvest(creep) != 0)
-                Creep_Prototype.creepPickup(creep);
+            if (creep.room.memory.energyStatus == undefined || creep.room.memory.energyStatus < 1 || creep.memory.goal == Goals.STORE) {
+                creep.say('⛏', publicDebug);
+                if (Creep_Prototype.creepHarvest(creep) != 0)
+                    Creep_Prototype.creepPickup(creep);
+            }
+            else {
+                creep.say('🗜', publicDebug);
+                if (creep.withdraw(creep.room.storage, RESOURCE_ENERGY, creep.store.getFreeCapacity()) == ERR_NOT_IN_RANGE)
+                    creep.moveTo(creep.room.storage);
+            }
         }
     }
 }
@@ -1092,11 +1042,7 @@ class Creep_Prototype {
  *instead of storing them in cache as an object.
  */
 class Scout extends Creep_Prototype {
-    constructor() {
-        super(...arguments);
-        //Variables
-        this.name = "Scout";
-    }
+    constructor() { super("Scout"); }
     //Real Methods
     run(creep) {
         Scout.run(creep);
@@ -1120,11 +1066,7 @@ class Scout extends Creep_Prototype {
  * that could use them.
  */
 class Defender extends Creep_Prototype {
-    constructor() {
-        super(...arguments);
-        //Variables
-        this.name = "Defender";
-    }
+    constructor() { super("Defender"); }
     //Real Methods
     run(creep) {
         Defender.run(creep);
@@ -1151,11 +1093,7 @@ class Defender extends Creep_Prototype {
  * that could use them.
  */
 class Extractor extends Creep_Prototype {
-    constructor() {
-        super(...arguments);
-        //Variables
-        this.name = "Extractor";
-    }
+    constructor() { super("Extractor"); }
     //Real Methods
     run(creep) {
         Extractor.run(creep);
@@ -1208,11 +1146,7 @@ class Extractor extends Creep_Prototype {
  * that could use them.
  */
 class Miner extends Creep_Prototype {
-    constructor() {
-        super(...arguments);
-        //Variables
-        this.name = "Miner";
-    }
+    constructor() { super("Miner"); }
     //Real Methods
     run(creep) {
         Miner.run(creep);
@@ -1320,7 +1254,7 @@ class CreepManager {
         for (var i = 0; i < CreepManager.jobs.length; i++)
             for (var j = 0; j < CreepManager.creeps.length; j++) {
                 if (CreepManager.creeps[j].memory.room == CreepManager.jobs[i].getRoom()) {
-                    if (CreepManager.creeps[j].memory.goal == undefined || CreepManager.creeps[j].memory.goal == Goals.UPGRADE) {
+                    if (CreepManager.creeps[j].memory.goal == undefined || CreepManager.creeps[j].memory.goal == Goals.UPGRADE || (CreepManager.jobs[i].getGoal() == Goals.FILL && Game.rooms[CreepManager.jobs[i].getRoom()].memory.counts["Fill"] == 0)) {
                         CreepManager.creeps[j].memory.goal = CreepManager.jobs.pop().getGoal();
                         break;
                     }
@@ -1385,6 +1319,7 @@ class SpawnManager {
     /**
      * Constructs a spawnManager object which has a refrence to the home room
      * containing the spawns it will need in the future.
+     * @param r The RoomPrototype object the SpawnManager "occupies."
      */
     constructor(r) {
         /**
@@ -1393,201 +1328,214 @@ class SpawnManager {
         this.stack = [];
         this.roomPrototype = r;
     }
-}
-
-/**
- * Spawns a defender creep at the given spawn and at the level given.
- * O(c) --> Runs in constant time.
- * @param capacity The max energy the creep can use
- * @param spawn The spawn where the creep will be produced
- */
-/**
- * Spawns a claimer creep at the given spawn and at the level given.
- * O(c) --> runs in constant time
- * @param capacity The max energy the creep can use
- * @param spawn The spawn where the creep will be spawned
- */
-// function spawnClaimer(capacity, spawn){
-//   //Claimers are easy... basic body
-//   var body = [MOVE,CLAIM]; //Cost - 650
-//   //Temp name storage
-//   var name = '[' + spawn.room.name + '] Claimer ' + Game.time;
-//   //Spawn the creep, Increment the claimer count in the room if successful
-//   if(spawn.spawnCreep(body,name, {memory: {role: 'claimer', distance: Game.flags['Claim'].room.name}}) == OK) spawn.room.memory.count.claimer++;
-// }
-/**
- * Spawns a distance harvester creep at the given spawn and at the level given.
- * O(c) --> runs in constant time
- * @param capacity The max energy the creep can use
- * @param spawn The spawn where the creep will be spawned
- * @param targetRoom The room which the distance harvester will be mining in
- */
-// function spawnDistanceHarvester(capacity:number, spawn:StructureSpawn, targetRoom:string){
-//   //The amount of energy towards our total we've spent
-//   var spent = 200; //Starts at 200 since we have 2 move (50) parts and 2 carry (50) parts
-//   //The starting body for our distance harvester
-//   var body:BodyPartConstant[] = [MOVE,MOVE,CARRY,CARRY];
-//   //Add another carry part if we have the space
-//   if(capacity > 550) { body.push(CARRY); spent += 50;}
-//   //Add work parts until we're out of energy but not to exceed 750 cost
-//   while(spent + 100 <= capacity && spent < 750) { body.push(WORK); spent += 100;}
-//   //Temp name storing
-//   var name = '[' + spawn.room.name + '] Distance Harvester ' + Game.time;
-//   //Spawn the creep, Increment the distance harvester count in the room if successful
-//   if(spawn.spawnCreep(body, name, {memory: {role: 'distanceHarvester', room: spawn.room.name, distance: targetRoom}}) == OK) spawn.room.meory.count.distanceHarvester++;
-// }
-/**
- * Spawns a harvester creep at the given spawn and at the level given.
- * O(c) --> runs in constant time
- * @param capacity The max energy the creep can use
- * @param spawn The spawn where the creep will be spawned
- */
-function spawnHarvester(capacity, spawn) {
-    //It's important to note that the harvester creep is also used for recovery
-    // and as such can't cost more than 300 energy
-    //Temp body storing
-    var body = [MOVE, MOVE, CARRY, CARRY, WORK]; //Cost - 300
-    //Temp name storing
-    var name = '[' + spawn.room.name + '] Worker ' + Game.time;
-    //Spawn the creep, Increment the harvester count in the room if successful
-    if (spawn.spawnCreep(body, name, { memory: { room: spawn.room.name } }) == OK)
-        spawn.room.memory.counts.Worker++;
-}
-/**
- * Spawns a harvester creep at the given spawn and at the level given.
- * O(c) --> runs in constant time
- * @param capacity The max energy the creep can use
- * @param spawn The spawn where the creep will be spawned
- */
-function spawnBigBoiHarvester(capacity, spawn) {
-    if (capacity > 300 + 20 * 50)
-        capacity = 300 + 20 * 50; //Cap the worker size
-    //The amount of energy towards our total we've spent
-    var spent = 200; //Starts at 200 since we have 2 move (50) parts and 2 carry (50) parts
-    //The starting body for our worker
-    var body = [MOVE, MOVE, CARRY, CARRY];
-    //Add another carry part if we have the space
-    while (spent + 50 < capacity / 2) {
-        body.push(CARRY);
-        spent += 50;
+    /**
+     * Returns the stack of CreepSpawns
+     */
+    getCreepSpawns() { return this.stack; }
+    /**
+     * Returns the roomPrototype attached
+     */
+    getRoomPrototype() { return this.roomPrototype; }
+    /**
+     * Adds a CreepSpawn to the stack if any only if it does not already
+     * contain a creep of that role.
+     * @param r The role string for the new CreepSpawn.
+     * @param c The capacity for the new CreepSpawn.
+     * @return 0 - All good.
+     * @return -1 - Stack already contains a creep of given role.
+     */
+    add(r, c) {
+        if (this.contains(r))
+            return -1;
+        this.stack.push(new CreepSpawn(r, c));
+        return 0;
     }
-    //Add another carry part if we have the space
-    while (spent + 50 < capacity * 3 / 5) {
-        body.push(MOVE);
-        spent += 50;
-    }
-    //Add work parts until we're out of energy but not to exceed 750 cost
-    while (spent + 100 <= capacity) {
-        body.push(WORK);
-        spent += 100;
-    }
-    //Temp name storing
-    var name = '[' + spawn.room.name + '] Worker ' + Game.time;
-    //Spawn the creep, Increment the harvester count in the room if successful
-    if (spawn.spawnCreep(body, name, { memory: { room: spawn.room.name } }) == OK)
-        spawn.room.memory.counts.Worker++;
-}
-function extractor(spawn) {
-    if (spawn.spawnCreep([WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, CARRY, CARRY, CARRY, CARRY, MOVE, MOVE, MOVE, MOVE], '[' + spawn.room.name + '] Extractor ' + Game.time, { memory: { room: spawn.room.name, role: "Extractor" } }) == OK)
-        spawn.room.memory.counts.Extractor++;
-}
-/**
- * Spawns a scout creep at the given spawn and at the level given.
- * O(c) --> runs in constant time
- * @param capacity The max energy the creep can use
- * @param spawn The spawn where the creep will be spawned
- */
-function spawnScout(capacity, spawn) {
-    //It's important to note that the scout creep's only purpose is to move and
-    // as such its body leaves much to desire
-    //Temp body storing
-    var body = [MOVE]; //Cost - 50
-    //Temp name storing
-    var name = '[' + spawn.room.name + '] Scout ' + Game.time;
-    //Spawn the creep
-    if (spawn.spawnCreep(body, name, { memory: { role: 'Scout', target: Game.flags["Scout"].pos.roomName, room: spawn.room.name } }) == OK)
-        spawn.room.memory.counts.Scout++;
-}
-/**
- * Spawns a worker creep at the given spawn and at the level given.
- * O(c) --> runs in constant time
- * @param capacity The max energy the creep can use
- * @param spawn The spawn where the creep will be spawned
- */
-function spawnWorker(capacity, spawn) {
-    //The amount of energy towards our total we've spent
-    var spent = 200; //Starts at 200 since we have 2 move (50) parts and 2 carry (50) parts
-    //The starting body for our worker
-    var body = [MOVE, MOVE, CARRY, CARRY];
-    //Add another carry part if we have the space
-    while (spent + 50 < capacity / 2) {
-        body.push(CARRY);
-        spent += 50;
-    }
-    //Add another carry part if we have the space
-    while (spent + 50 < capacity * 3 / 5) {
-        body.push(MOVE);
-        spent += 50;
-    }
-    //Add work parts until we're out of energy but not to exceed 750 cost
-    while (spent + 100 <= capacity) {
-        body.push(WORK);
-        spent += 100;
-    }
-    //Temp name storing
-    var name = '[' + spawn.room.name + '] Worker ' + Game.time;
-    //Spawn the creep, Increment the upgrader count in the room if successful
-    if (spawn.spawnCreep(body, name, { memory: { room: spawn.room.name } }) == OK)
-        spawn.room.memory.counts.Worker++;
-}
-//Public facing functions
-/**
- * Finds spawns in the room given and runs the logic for what needs to be spawned.
- * Then functions higher up in the file are called to handle the spawning of specifc
- * creeps.
- * Worst case: O(s + t) --> s is the number of spawns
- * Expected case: O(s + t) --> s is the number of spwans, t is the number of buildings
- * Best case: O(s + t) --> s is the number of spawns
- * @param currentRoom The room in which spawning occurs
- */
-function spawn(currentRoom) {
-    //Check the capacity we can spawn at
-    var capacity = 300 + (currentRoom.find(FIND_MY_STRUCTURES, { filter: (s) => s.structureType == STRUCTURE_EXTENSION }).length * 50); //O(t)
-    //Iterate through spwans in the game
-    for (var s in Game.spawns) { //TODO implement spawns into room.memory so this is O(c), current O(s)
-        //Why is this harder than it needs to be?
-        var spawn = Game.spawns[s];
-        //Is the spawn in the room we want?
-        if (currentRoom.name == spawn.room.name) {
-            if (currentRoom.memory.counts.Miner == undefined) {
-                currentRoom.memory.counts.Miner = 0;
-                currentRoom.memory.counts.Carrier = 0;
-                currentRoom.memory.counts.Jumpstart = 0;
-                currentRoom.memory.counts.Worker = 0;
+    /**
+     * Attempts to spawn as many creeps as possible in the stack.
+     * @return -1 - No creeps in the stack.
+     * @return -2 - CreepSpawn has undefined parts.
+     */
+    spawn() {
+        if (this.stack.length == 0)
+            return -1;
+        this.roomPrototype.updateSpawns();
+        const s = this.roomPrototype.getSpawns();
+        for (var i = 0; i < s.length; i++) {
+            if (s[i].spawning == null) {
+                const c = this.stack.pop();
+                if (c.getBody() == undefined || c.getName() == undefined)
+                    return -2;
+                if (s[i].spawnCreep(c.getBody(), c.getName(), { memory: { room: this.roomPrototype.getRoomRefrence(), role: c.getRole() } }) != OK)
+                    this.stack.push(c);
             }
-            //Check if a harvester creep needs to be spawned, this includes recovery if all creeps die
-            if (currentRoom.memory.counts.Worker < 1)
-                spawnHarvester(capacity, spawn);
-            else if (currentRoom.memory.counts.Extractor < 1 && currentRoom.find(FIND_MINERALS)[0].mineralAmount > 0)
-                extractor(spawn);
-            //Check if a carrier creep needs to be spawned, 2 per miner
-            // else if(currentRoom.memory.counts.Carrier < currentRoom.memory.counts.Miner * 2) spawnCarrier(capacity, spawn);
-            //Check if a miner creep needs to be spawned, 1 per source
-            else if (currentRoom.memory.counts.Worker < 10)
-                spawnBigBoiHarvester(capacity, spawn);
-            //Check if workers should be spawned, 4 base, // TODO: check if more can be spawned
-            else if (currentRoom.memory.counts.Worker < 4)
-                spawnWorker(capacity, spawn);
-            //Check if a repair bot should be spawned
-            // else if(currentRoom.memory.counts.RepairBot < 1) spawnRepairBot(capacity, spawn);
-            //Check if a scout should be spawned
-            else if (currentRoom.memory.counts.Scout < 1 && Game.flags["Scout"] != null)
-                spawnScout(capacity, spawn);
-            //Check if a claimer should be spawned
-            // else if(currentRoom.memory.countClaimer < 1 && Game.flags['Claim'] != undefined) spawnClaimer(capacity, spawn);
-            // TODO: reimplement distance harvesters
-            // else if(spawn.store.getCapacity(RESOURCE_ENERGY) == 300 && currentRoom.memory.counts.Worker < 8) spawnWorker(capacity,spawn);
         }
+        return 0;
+    }
+    /**
+     * Checks if the stack has a creep matching the request or add CreepSpawn.
+     * @param r The role string to be looking out for.
+     * @return false - The stack does not contain a creep matching the given role.
+     * @return true - The stack does contain a creep matching the given role.
+     */
+    contains(r) {
+        for (var i = 0; i < this.stack.length; i++)
+            if (this.stack[i].getRole() == r)
+                return true;
+        return false;
+    }
+    /**
+     * Checks census numbers of creeps and makes a choice if more need to be
+     * spawned or not.
+     * @return 0 - All good.
+     */
+    check() {
+        const room = Game.rooms[this.roomPrototype.getRoomRefrence()];
+        const counts = room.memory.counts;
+        const capacity = room.find(FIND_MY_STRUCTURES, { filter: (s) => s.structureType == STRUCTURE_EXTENSION }).length * 50 + 300;
+        var tw = 10;
+        if (room.memory.energyStatus != undefined)
+            tw = room.memory.energyStatus * 2;
+        var te = 0;
+        if (room.find(FIND_MINERALS)[0].mineralAmount > 0)
+            te = 1;
+        var total = 0;
+        for (let c in counts) {
+            switch (c) {
+                case "Worker":
+                    if (counts[c] < tw && counts[c] != 0)
+                        this.add(undefined, capacity);
+                    break;
+                case "Extractor":
+                    if (counts[c] < te)
+                        this.add("Extractor", capacity);
+                    break;
+            }
+            total += counts[c];
+        }
+        if (total == 0)
+            this.add(undefined, 300);
+        return 0;
+    }
+}
+/**
+ * Specifications for the creep being spawned including its role, body, and name.
+ */
+class CreepSpawn {
+    /**
+     * Makes a new creep of the given role and size.
+     * @param r The role the creep will be assuming. Worker is assumed if
+     * undefined.
+     * @param c The amount of energy that can be spent on the creep.
+     */
+    constructor(r, c) {
+        /**
+         * The body of the prospective creep.
+         */
+        this.body = [];
+        this.role = r;
+        this.generateBody(c);
+        this.generateName();
+    }
+    /**
+     * Returns the role of the creep.
+     */
+    getRole() { return this.role; }
+    /**
+     * Returns the body of the creep.
+     */
+    getBody() {
+        if (this.body.length == 0)
+            return undefined;
+        else
+            return this.body;
+    }
+    /**
+     * Returns the name of the creep.
+     */
+    getName() { return this.name; }
+    /**
+     * Determines which helper method should be called to build the body of the
+     * creep depending on the role given.
+     * @param c The amount of energy that can be spent on the creep.
+     * @return 0 - All good.
+     * @return -1 - Creep Role not found.
+     */
+    generateBody(c) {
+        switch (this.role) {
+            case undefined: return this.buildWorker(c);
+            case "Extractor": return this.buildWorker(c); //todo: Implement a body setup for extractors
+        }
+        return -1;
+    }
+    /**
+     * Assigns the given parts to the creep in the desired order.
+     * @param m The number of move parts for the body.
+     * @param w The number of work parts for the body.
+     * @param ca The number of carry parts for the body.
+     * @param a The number of attack parts for the body.
+     * @param r The number of ranged attack parts for the body.
+     * @param h The number of heal parts for the body.
+     * @param t The number of tough parts for the body.
+     * @param cl The number of claim parts for the body.
+     * @return 0 - All good.
+     */
+    assignBody(m, w, ca, a, r, h, t, cl) {
+        for (var i = 0; i < t; i++)
+            this.body.push(TOUGH);
+        for (var i = 0; i < w; i++)
+            this.body.push(WORK);
+        for (var i = 0; i < ca; i++)
+            this.body.push(CARRY);
+        for (var i = 0; i < a; i++)
+            this.body.push(ATTACK);
+        for (var i = 0; i < r; i++)
+            this.body.push(RANGED_ATTACK);
+        for (var i = 0; i < m; i++)
+            this.body.push(MOVE);
+        for (var i = 0; i < cl; i++)
+            this.body.push(CLAIM);
+        for (var i = 0; i < h; i++)
+            this.body.push(HEAL);
+        return 0;
+    }
+    /**
+     * Determines counts for each body part of a worker creep.
+     * @param c The capacity of energy that can be spent on the creep.
+     * @return 0 - All good.
+     */
+    buildWorker(c) {
+        if (c > 1250)
+            c = 1250;
+        var spent = 300;
+        var m = 2;
+        var w = 1;
+        var ca = 2;
+        while ((spent + 200) <= c && m < 5) {
+            m++;
+            w++;
+            ca++;
+            spent += 200;
+        }
+        if ((spent + 100) <= c) {
+            w++;
+            spent += 100;
+        }
+        while (spent >= 1000 && (spent + 50) <= c) {
+            ca++;
+            spent += 50;
+        }
+        return this.assignBody(m, w, ca, 0, 0, 0, 0, 0);
+    }
+    /**
+     * Generates the name for the creep.
+     * @return 0 - All good.
+     */
+    generateName() {
+        if (this.role != undefined)
+            this.name = this.role + ": " + Game.time;
+        else
+            this.name = "Worker: " + Game.time;
+        return 0;
     }
 }
 
@@ -1604,10 +1552,8 @@ class VisualsManager {
      * @param floodFill - The flood fill algorithm result
      */
     run(roomName, distanceTransform = undefined, floodFill = undefined) {
-        //If the DistanceTransform flag is down call the drawing function
         if (Game.flags["DistanceTransform"] != undefined)
             this.distanceTransform(distanceTransform, roomName);
-        //If the FloodFill flag is down call the drawing function
         else if (Game.flags["FloodFill"] != undefined)
             this.floodFill(floodFill, roomName);
     }
@@ -1617,15 +1563,10 @@ class VisualsManager {
      * @param roomName - The room the data is being drawn to
      */
     distanceTransform(distanceTransform, roomName) {
-        //If the transform is defined, iterate through all the elements
         if (distanceTransform != undefined)
             for (var i = 0; i < 50; i++)
                 for (var j = 0; j < 50; j++) {
-                    //Depending on the value of the cell we want to draw a different color cirlce here
                     switch (distanceTransform[i][j]) {
-                        //Draw a gradient of colors depending on the cell's value. Nothing is drawn for walls/boundaries
-                        // -1 is only used in the non iterative solution to the distance transform. The gradient
-                        // used here is the far right row of web safe colors on this website https://htmlcolors.com/color-chart
                         case -1:
                             new RoomVisual(roomName).circle(j, i, { fill: "#607D8B", opacity: 80 });
                             break;
@@ -1684,19 +1625,14 @@ class VisualsManager {
      * @param roomName - The room being drawn to
      */
     floodFill(floodFill, roomName) {
-        //If flood fill is defined iterate through cells
         if (floodFill != undefined)
             for (var i = 0; i < 50; i++)
                 for (var j = 0; j < 50; j++) {
-                    //Make a different circle depending on the drawing
                     switch (floodFill[i][j]) {
-                        //Walls have no color
                         case 0: break;
-                        //Infected are green
                         case -1:
                             new RoomVisual(roomName).circle(j, i, { fill: "#388E3C", opacity: 80 });
                             break;
-                        //Not infected a nice blue color
                         case 1:
                             new RoomVisual(roomName).circle(j, i, { fill: "#303F9F", opacity: 80 });
                             break;
@@ -2468,7 +2404,9 @@ class Colony {
                 Queue.request(new Calculate_FloodFill(this));
         this.checkGoals();
         //Run the spawn manger.
-        spawn(this.home);
+        this.census();
+        this.spawnManager.check();
+        this.spawnManager.spawn();
         if (Game.flags["Visuals"] != undefined)
             new VisualsManager().run(this.home.name, this.roomPlanner.getDistanceTransform(), this.roomPlanner.getFloodFill());
     }
@@ -2477,19 +2415,21 @@ class Colony {
      * this.home to their numbers.
      */
     census() {
-        this.home.memory.counts["Miner"] = 0;
-        this.home.memory.counts["Carrier"] = 0;
-        this.home.memory.counts["Jumpstart"] = 0;
         this.home.memory.counts["Worker"] = 0;
-        this.home.memory.counts["RepairBot"] = 0;
-        this.home.memory.counts["Scout"] = 0;
         this.home.memory.counts["Extractor"] = 0;
+        this.home.memory.counts["Store"] = 0;
+        this.home.memory.counts["Fill"] = 0;
         for (let c in Game.creeps) {
             var creep = Game.creeps[c];
             if (creep.memory.room != this.home.name)
                 continue;
-            if (creep.memory.role == undefined)
+            if (creep.memory.role == undefined) {
                 this.home.memory.counts["Worker"]++;
+                if (creep.memory.goal == "Store")
+                    this.home.memory.counts["Store"] += 1;
+                else if (creep.memory.goal == "Fill")
+                    this.home.memory.counts["Fill"] += 1;
+            }
             else
                 this.home.memory.counts[creep.memory.role]++;
         }
@@ -2506,11 +2446,12 @@ class Colony {
         const w = this.home.find(FIND_STRUCTURES, { filter: (c) => (c.structureType == STRUCTURE_RAMPART || c.structureType == STRUCTURE_WALL) && c.hits < threashold });
         const r = this.home.find(FIND_STRUCTURES, { filter: (c) => c.hits < c.hitsMax && (c.structureType != STRUCTURE_WALL && c.structureType != STRUCTURE_RAMPART) });
         const c = this.home.find(FIND_CONSTRUCTION_SITES);
-        const d = this.home.find(FIND_SOURCES_ACTIVE);
+        this.home.find(FIND_SOURCES_ACTIVE);
         const s = this.home.find(FIND_MY_STRUCTURES, { filter: (s) => (s.structureType == STRUCTURE_SPAWN || s.structureType == STRUCTURE_EXTENSION || s.structureType == STRUCTURE_TOWER) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0 }); //O(7 + 3n)
         if (this.home.terminal != undefined && Game.time % 1500 == 0)
-            if (this.home.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < 10000)
+            if (this.home.terminal.store.getUsedCapacity(RESOURCE_ENERGY) < 200000)
                 CreepManager.declareJob(new Job(Goals.TRADE, this.home.name));
+        const h = this.home.memory.counts["Store"];
         //Check the goals that need to be taken
         if (w != null && w.length > 0 && Game.time % 500 == 0)
             CreepManager.declareJob(new Job(Goals.REINFORCE, this.home.name));
@@ -2520,7 +2461,8 @@ class Colony {
             CreepManager.declareJob(new Job(Goals.BUILD, this.home.name));
         if (s != null && s.length > 0 && Game.time % 25 == 0)
             CreepManager.declareJob(new Job(Goals.FILL, this.home.name));
-        if (d != null && d.length > 0 && Game.time % 500 == 0)
+        // if (d != null && d.length > 0 && Game.time % 500 == 0) CreepManager.declareJob(new Job(Goals.STORE, this.home.name));
+        if (h < 4 && Game.time % 25 == 0)
             CreepManager.declareJob(new Job(Goals.STORE, this.home.name));
     }
     checkEnergyStatus() {
@@ -2650,23 +2592,25 @@ class MarketManipulator {
         }
         return 0;
     }
-    static marketSell(r, t) {
+    static marketSell(r, t, a = 0) {
         if (Game.rooms[t].terminal != undefined)
             t = Game.rooms[t].terminal;
         else
-            return -1; //throw "No terminal was found in room [" + t + "]";
+            throw "No terminal was found in room [" + t + "]";
         MarketManipulator.look(r, ORDER_BUY);
         MarketManipulator.sort(SortTypes.PRICE);
         var spent = 0;
         var totalFees = 0;
         var i = 0;
-        const toSpend = t.store.getUsedCapacity(r);
+        const toSpend = Math.max(t.store.getUsedCapacity(r), a);
         while (spent < toSpend && MarketManipulator.orders[i] != undefined) {
             const amount = Math.min(MarketManipulator.orders[i].remainingAmount, toSpend - spent);
             const fees = Game.market.calcTransactionCost(amount, t.room.name, MarketManipulator.orders[i].roomName);
             if (totalFees + fees > t.store.getUsedCapacity(RESOURCE_ENERGY))
                 return -5;
-            Game.market.deal(MarketManipulator.orders[i].id, amount, t.room.name);
+            const result = Game.market.deal(MarketManipulator.orders[i].id, amount, t.room.name);
+            if (result != 0)
+                return result;
             spent += amount;
             totalFees += fees;
             i++;

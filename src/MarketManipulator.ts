@@ -15,20 +15,26 @@ export class MarketManipulator {
     }
     return 0;
   }
-  static marketSell(r:ResourceConstant, t:any) {
+
+  static marketSell(r:ResourceConstant, t:any, a:number = 0) {
+
     if (Game.rooms[t].terminal != undefined) t = Game.rooms[t].terminal;
-    else return -1; //throw "No terminal was found in room [" + t + "]";
+    else throw "No terminal was found in room [" + t + "]";
+
     MarketManipulator.look(r, ORDER_BUY);
     MarketManipulator.sort(SortTypes.PRICE);
+
     var spent:number = 0;
     var totalFees:number = 0
     var i:number = 0;
-    const toSpend:number = t.store.getUsedCapacity(r);
+    const toSpend:number = Math.max(t.store.getUsedCapacity(r), a);
+
     while (spent < toSpend && MarketManipulator.orders[i] != undefined) {
-      const amount:number = Math.min(MarketManipulator.orders[i].remainingAmount, toSpend -spent);
+      const amount:number = Math.min(MarketManipulator.orders[i].remainingAmount, toSpend - spent);
       const fees:number = Game.market.calcTransactionCost(amount, t.room.name, MarketManipulator.orders[i].roomName!);
       if (totalFees + fees > t.store.getUsedCapacity(RESOURCE_ENERGY)) return -5;
-      Game.market.deal(MarketManipulator.orders[i].id, amount, t.room.name);
+      const result:number = Game.market.deal(MarketManipulator.orders[i].id, amount, t.room.name);
+      if (result != 0) return result;
       spent += amount;
       totalFees += fees;
       i++;
@@ -36,6 +42,7 @@ export class MarketManipulator {
     }
     return 0;
   }
+
   static print(){
     console.log("Current Market View");
     for (var i = 0; i < MarketManipulator.orders.length; i++) console.log("[" + MarketManipulator.orders[i].id + "] " + MarketManipulator.orders[i].type + " " + MarketManipulator.orders[i].resourceType + " - " + MarketManipulator.orders[i].remainingAmount + " <" + MarketManipulator.orders[i].price + ">");
