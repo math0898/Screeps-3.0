@@ -982,6 +982,8 @@ class Creep_Prototype {
         return 0;
     }
     static run(creep) {
+        if (creep.memory.goal == Goals.TRADE)
+            Creep_Prototype.trader(creep);
         if (creep.memory.goal == undefined)
             creep.memory.goal = Goals.UPGRADE;
         if (creep.store.getFreeCapacity() == 0)
@@ -1253,6 +1255,8 @@ class CreepManager {
     static assignJobs() {
         for (var i = 0; i < CreepManager.jobs.length; i++)
             for (var j = 0; j < CreepManager.creeps.length; j++) {
+                if (CreepManager.creeps[j].memory.role != undefined)
+                    continue;
                 if (CreepManager.creeps[j].memory.room == CreepManager.jobs[i].getRoom()) {
                     if (CreepManager.creeps[j].memory.goal == undefined || CreepManager.creeps[j].memory.goal == Goals.UPGRADE || (CreepManager.jobs[i].getGoal() == Goals.FILL && Game.rooms[CreepManager.jobs[i].getRoom()].memory.counts["Fill"] == 0)) {
                         CreepManager.creeps[j].memory.goal = CreepManager.jobs.pop().getGoal();
@@ -2462,7 +2466,7 @@ class Colony {
         if (s != null && s.length > 0 && Game.time % 25 == 0)
             CreepManager.declareJob(new Job(Goals.FILL, this.home.name));
         // if (d != null && d.length > 0 && Game.time % 500 == 0) CreepManager.declareJob(new Job(Goals.STORE, this.home.name));
-        if (h < 4 && Game.time % 25 == 0)
+        if (h < 6 && Game.time % 25 == 0)
             CreepManager.declareJob(new Job(Goals.STORE, this.home.name));
     }
     checkEnergyStatus() {
@@ -2592,30 +2596,38 @@ class MarketManipulator {
         }
         return 0;
     }
-    static marketSell(r, t, a = 0) {
+    static marketSell(r, t, a = -1) {
+        if (a < 100 && a >= 0)
+            return -42;
+        var temp = a;
         if (Game.rooms[t].terminal != undefined)
             t = Game.rooms[t].terminal;
         else
             throw "No terminal was found in room [" + t + "]";
+        if (t.cooldown > 0) {
+            Queue.request(new MarketSell(r, t.room.name, a));
+            return;
+        }
         MarketManipulator.look(r, ORDER_BUY);
         MarketManipulator.sort(SortTypes.PRICE);
-        var spent = 0;
-        var totalFees = 0;
-        var i = 0;
-        const toSpend = Math.max(t.store.getUsedCapacity(r), a);
-        while (spent < toSpend && MarketManipulator.orders[i] != undefined) {
-            const amount = Math.min(MarketManipulator.orders[i].remainingAmount, toSpend - spent);
-            const fees = Game.market.calcTransactionCost(amount, t.room.name, MarketManipulator.orders[i].roomName);
-            if (totalFees + fees > t.store.getUsedCapacity(RESOURCE_ENERGY))
-                return -5;
-            const result = Game.market.deal(MarketManipulator.orders[i].id, amount, t.room.name);
-            if (result != 0)
-                return result;
-            spent += amount;
-            totalFees += fees;
-            i++;
-            if (i == 10)
-                break; //No more than 10 orders per tick
+        if (a < 0)
+            a = t.store.getUsedCapacity(r);
+        const toSpend = Math.min(t.store.getUsedCapacity(r), a);
+        if (toSpend < 100)
+            return 0;
+        if (MarketManipulator.orders[0] != undefined) {
+            var amount = Math.min(MarketManipulator.orders[0].remainingAmount, toSpend);
+            if (r == RESOURCE_ENERGY)
+                if (amount + Game.market.calcTransactionCost(amount, t.room.name, MarketManipulator.orders[0].roomName) > toSpend) {
+                    const delta = Game.market.calcTransactionCost(1000000, t.room.name, MarketManipulator.orders[0].roomName) / 1000000;
+                    amount = Math.floor(toSpend / (1 + delta));
+                }
+            Game.market.deal(MarketManipulator.orders[0].id, amount, t.room.name);
+            console.log("Market Sell Order [" + MarketManipulator.orders[0].id + "] " + MarketManipulator.orders[0].type + " " + MarketManipulator.orders[0].resourceType + " - " + amount + " <" + MarketManipulator.orders[0].price + ">");
+            if (r != RESOURCE_ENERGY)
+                Queue.request(new MarketSell(r, t.room.name, temp - amount));
+            else
+                Queue.request(new MarketSell(r, t.room.name, temp - amount - Game.market.calcTransactionCost(amount, t.room.name, MarketManipulator.orders[0].roomName)));
         }
         return 0;
     }
@@ -2627,6 +2639,17 @@ class MarketManipulator {
     }
 }
 MarketManipulator.orders = [];
+class MarketSell extends template {
+    constructor(r, t, a) {
+        super("Market Sell");
+        this.r = r;
+        this.t = t;
+        this.a = a;
+    }
+    run() {
+        MarketManipulator.marketSell(this.r, this.t, this.a);
+    }
+}
 
 //A queue object holding the items which have been queue'd to complete.
 var queue = new Queue();

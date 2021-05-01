@@ -91,6 +91,7 @@ export class CreepManager {
   static declareJob(j:Job){ CreepManager.jobs.push(j); }
   static assignJobs(){
     for (var i = 0; i < CreepManager.jobs.length; i++) for (var j = 0; j < CreepManager.creeps.length; j++) {
+      if (CreepManager.creeps[j].memory.role != undefined) continue;
       if (CreepManager.creeps[j].memory.room == CreepManager.jobs[i].getRoom()) {
         if (CreepManager.creeps[j].memory.goal == undefined ||  CreepManager.creeps[j].memory.goal == Goals.UPGRADE || (CreepManager.jobs[i].getGoal() == Goals.FILL && Game.rooms[CreepManager.jobs[i].getRoom()].memory.counts["Fill"] == 0)) {
           CreepManager.creeps[j].memory.goal = CreepManager.jobs.pop()!.getGoal();

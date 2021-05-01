@@ -117,7 +117,7 @@ export class Colony{
      if (c != null && c.length > 0 && Game.time % 250 == 0) CreepManager.declareJob(new Job(Goals.BUILD, this.home.name));
      if (s != null && s.length > 0 && Game.time % 25 == 0) CreepManager.declareJob(new Job(Goals.FILL, this.home.name));
      // if (d != null && d.length > 0 && Game.time % 500 == 0) CreepManager.declareJob(new Job(Goals.STORE, this.home.name));
-     if (h < 4 && Game.time % 25 == 0) CreepManager.declareJob(new Job(Goals.STORE, this.home.name));
+     if (h < 6 && Game.time % 25 == 0) CreepManager.declareJob(new Job(Goals.STORE, this.home.name));
     }
     checkEnergyStatus() {
       if (this.home.storage == undefined) this.energyStatus = undefined;

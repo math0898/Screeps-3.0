@@ -351,6 +351,7 @@ export abstract class Creep_Prototype {
     return 0;
   }
   static run(creep:Creep){
+    if (creep.memory.goal == Goals.TRADE) Creep_Prototype.trader(creep);
     if (creep.memory.goal == undefined) creep.memory.goal = Goals.UPGRADE;
     if (creep.store.getFreeCapacity() == 0) creep.memory.working = true;
     else if (creep.store.getUsedCapacity() == 0 || creep.memory.working == undefined) creep.memory.working = false;

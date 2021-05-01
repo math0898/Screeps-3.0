@@ -1,4 +1,8 @@
+import { Queue } from "Queue";
+import { task, template } from "task";
+
 enum SortTypes { PRICE = "price"}
+
 export class MarketManipulator {
   static orders:Order[] = [];
   static look(r:ResourceConstant | undefined = undefined, t:string | undefined = undefined) {
@@ -16,29 +20,35 @@ export class MarketManipulator {
     return 0;
   }
 
-  static marketSell(r:ResourceConstant, t:any, a:number = 0) {
+  static marketSell(r:ResourceConstant, t:any, a:number = -1) {
+
+    if (a < 100 && a >= 0) return -42;
+
+    var temp:number = a;
 
     if (Game.rooms[t].terminal != undefined) t = Game.rooms[t].terminal;
     else throw "No terminal was found in room [" + t + "]";
 
+    if (t.cooldown! > 0) { Queue.request(new MarketSell(r, t.room.name!, a)); return; }
+
     MarketManipulator.look(r, ORDER_BUY);
     MarketManipulator.sort(SortTypes.PRICE);
 
-    var spent:number = 0;
-    var totalFees:number = 0
-    var i:number = 0;
-    const toSpend:number = Math.max(t.store.getUsedCapacity(r), a);
+    if (a < 0) a = t.store.getUsedCapacity(r);
+    const toSpend:number = Math.min(t.store.getUsedCapacity(r), a);
 
-    while (spent < toSpend && MarketManipulator.orders[i] != undefined) {
-      const amount:number = Math.min(MarketManipulator.orders[i].remainingAmount, toSpend - spent);
-      const fees:number = Game.market.calcTransactionCost(amount, t.room.name, MarketManipulator.orders[i].roomName!);
-      if (totalFees + fees > t.store.getUsedCapacity(RESOURCE_ENERGY)) return -5;
-      const result:number = Game.market.deal(MarketManipulator.orders[i].id, amount, t.room.name);
-      if (result != 0) return result;
-      spent += amount;
-      totalFees += fees;
-      i++;
-      if (i == 10) break; //No more than 10 orders per tick
+    if (toSpend < 100) return 0;
+
+    if (MarketManipulator.orders[0] != undefined) {
+      var amount:number = Math.min(MarketManipulator.orders[0].remainingAmount, toSpend);
+      if (r == RESOURCE_ENERGY) if (amount + Game.market.calcTransactionCost(amount, t.room.name, MarketManipulator.orders[0].roomName!) > toSpend) {
+        const delta = Game.market.calcTransactionCost(1000000, t.room.name, MarketManipulator.orders[0].roomName!)/1000000;
+        amount = Math.floor(toSpend/(1 + delta));
+      }
+      Game.market.deal(MarketManipulator.orders[0].id, amount, t.room.name);
+      console.log("Market Sell Order [" + MarketManipulator.orders[0].id + "] " + MarketManipulator.orders[0].type + " " + MarketManipulator.orders[0].resourceType + " - " + amount + " <" + MarketManipulator.orders[0].price + ">");
+      if (r != RESOURCE_ENERGY) Queue.request(new MarketSell(r, t.room.name!, temp - amount));
+      else Queue.request(new MarketSell(r, t.room.name!, temp - amount - Game.market.calcTransactionCost(amount, t.room.name, MarketManipulator.orders[0].roomName!)));
     }
     return 0;
   }
@@ -47,5 +57,20 @@ export class MarketManipulator {
     console.log("Current Market View");
     for (var i = 0; i < MarketManipulator.orders.length; i++) console.log("[" + MarketManipulator.orders[i].id + "] " + MarketManipulator.orders[i].type + " " + MarketManipulator.orders[i].resourceType + " - " + MarketManipulator.orders[i].remainingAmount + " <" + MarketManipulator.orders[i].price + ">");
     return 0;
+  }
+}
+
+export class MarketSell extends template implements task {
+  private r:ResourceConstant;
+  private t:string;
+  private a:number
+  constructor(r:ResourceConstant, t:string, a:number) {
+    super("Market Sell");
+    this.r = r;
+    this.t = t;
+    this.a = a;
+  }
+  run() {
+    MarketManipulator.marketSell(this.r, this.t, this.a);
   }
 }
