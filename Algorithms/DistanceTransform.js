@@ -20,7 +20,7 @@ export class DistanceTransform extends Algorithm { //TODO finish implementation 
      * approach used for processing the algorithm. 
      * 
      * 0 - An iterative approach using higher peak cpu but lower average.
-     * 1 - A raw computing approach uses lower peaks but takes longer.
+     * 1 - A raw computing approach which has lower peaks but takes longer.
      */
     flag;
 
@@ -29,10 +29,15 @@ export class DistanceTransform extends Algorithm { //TODO finish implementation 
      * This method also takes a flag representing how the algorithm should be 
      * executed.
      * 
-     * @param {number[][]} room The room this algorithm will be operating on.
+     * It should be noted that the room should be square. Although things may or not 
+     * break in the case room is not. 
+     * 
+     * @param {number[][]} room The map this algorithm will be running on. 0 represents
+     *                          a wall and 1 represents a space to calculate the distance
+     *                          from the walls for.
      * @param {number} flag This flag determines the approach this algorithm will use 
-     *                   during execution. 0 for the iterative approach, 1 for the 
-     *                   single compute approach.
+     *                      during execution. 0 for the iterative approach, 1 for the 
+     *                      single compute approach.
      */
     constructor (room, flag) {
         let currentDate = new Date();
@@ -49,5 +54,50 @@ export class DistanceTransform extends Algorithm { //TODO finish implementation 
      */
     getResult () {
         return this.room;
+    }
+
+    /**
+     * Manages execution of the Distance Transform. This method is safe and if
+     * it is called after execution has completed it will do nothing. 
+     */
+    manager () {
+        if (this.isFinished()) return;
+        var completed;
+        if (flag == 0) completed = this.distanceTransformIterative();
+
+        if (completed) this.markComplete();
+    }
+
+    /**
+     * This is the iterative step of the Distance Transform it uses the neighbors
+     * of each point to determine if the distance a point could be is higher than
+     * currently reported. Each call it can make up to n^2 * 9 reads and n^2 writes.
+     * 
+     * @return True if no swaps were made and the algorithm is finished. False
+     *         otherwise.
+     */
+    distanceTransformIterative () {
+        var temp = _.cloneDeep(this.room);
+        var change = false;
+
+        for (var y = 0; y < temp.length; y++) for (var x = 0; x < temp[y].length; x++) {
+            var current = this.room[y][x];
+            if (current == 0) continue;
+            var t = false;
+            for (var dx = -1; dx <= 1; dx++) {
+                for (var dy = -1; dy <= 1; dy++) {
+                    if (this.room[y + dy][x + dx] < current) { // If the array goes out of bounds this will be false.
+                        t = true;
+                        break;
+                    }
+                }
+                if (t) break;
+            }
+            if (t) continue;
+            temp[y][x]++;
+            change = true;
+        }
+
+        return change;
     }
 }
