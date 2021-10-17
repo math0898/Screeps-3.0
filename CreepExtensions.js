@@ -3,8 +3,8 @@
  * It returns true if and only if they are equal. If either are undefined the
  * function returns false.
  * 
- * @param a - The first room to compare
- * @param b - The second room to compare
+ * @param {RoomPosition} a The first room to compare
+ * @param {RoomPosition} b The second room to compare
  */
 function compareRoomPos (a, b) {
     if (typeof a != RoomPosition || typeof b != RoomPosition) return false;
@@ -20,12 +20,12 @@ function compareRoomPos (a, b) {
  * An extension of the Creep prototype. This function is meant to replace
  * creep.moveTo(target). In general it is also more efficient.
  * 
- * @param t - The target position you wnt the creep to reach
- * @return 1 - Path found.
- * @return 0 - Function completed as intended.
- * @return -1 - Parameter is not of type RoomPosition.
- * @return -11 - Creep is fatigued.
- * @return -666 - Uh...
+ * @param {RoomPosition} t The target position you wnt the creep to reach
+ * @return 1 Path found.
+ * @return 0 Function completed as intended.
+ * @return -1 Parameter is not of type RoomPosition.
+ * @return -11 Creep is fatigued.
+ * @return -666 Uh...
  */
 Creep.prototype.smartMove = function (t) {
     if (typeof t != RoomPosition) return -1;
@@ -58,9 +58,9 @@ Creep.prototype.smartMove = function (t) {
  * extra processes and creep.harvest(target), Creep.memory.source should be
  * defined as a game object id if a specific source is desired.
  * 
- * @return 1 - No source target was found so one was found.
- * @return 0 - Function completed as intended.
- * @return -1 - A game object of that id could not be found.
+ * @return 1 No source target was found so one was found.
+ * @return 0 Function completed as intended.
+ * @return -1 A game object of that id could not be found.
  */
 Creep.prototype.smartHarvest = function () {
     const sid = this.memory.source;

@@ -22,7 +22,7 @@ export class Algorithm {
      * The basic constructor for the algorithm class. All that is needed is a
      * name.
      * 
-     * @param name The name of this algorithm.
+     * @param {string} name The name of this algorithm.
      */
     constructor (name) {
         this.#name = name;
@@ -53,4 +53,18 @@ export class Algorithm {
     markComplete () {
         this.#finished = true;
     }
+
+    /**
+     * Manages and runs the algorithm. This function may implement the 
+     * algorithm or call numerous helper methods.
+     */
+    manager ();
+
+    /**
+     * Returns the result of the algorithm. This is only updated once the
+     * algorithm has finished its execution.
+     * 
+     * @return The result of the algorithm in whatever form may be.
+     */
+    getResult ();
 }
