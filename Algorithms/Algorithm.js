@@ -58,7 +58,7 @@ export class Algorithm {
      * Manages and runs the algorithm. This function may implement the 
      * algorithm or call numerous helper methods.
      */
-    manager ();
+    manager () {}
 
     /**
      * Returns the result of the algorithm. This is only updated once the
@@ -66,5 +66,5 @@ export class Algorithm {
      * 
      * @return The result of the algorithm in whatever form may be.
      */
-    getResult ();
+    getResult () {}
 }

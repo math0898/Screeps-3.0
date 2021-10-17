@@ -7,7 +7,7 @@ import { Algorithm } from "./Algorithm";
  * 
  * @author Sugaku
  */
-export class DistanceTransform extends Algorithm { //TODO finish implementation and rewrite.
+class DistanceTransform extends Algorithm { //TODO finish implementation and rewrite.
 
     /**
      * This variable holds the representation of the room. This will then be updated
@@ -63,7 +63,7 @@ export class DistanceTransform extends Algorithm { //TODO finish implementation 
     manager () {
         if (this.isFinished()) return;
         var completed;
-        if (flag == 0) completed = this.distanceTransformIterative();
+        if (this.flag == 0) completed = this.distanceTransformIterative();
 
         if (completed) this.markComplete();
     }
@@ -77,7 +77,7 @@ export class DistanceTransform extends Algorithm { //TODO finish implementation 
      *         otherwise.
      */
     distanceTransformIterative () {
-        var temp = _.cloneDeep(this.room);
+        var temp = require('lodash').cloneDeep(this.room);
         var change = false;
 
         for (var y = 0; y < temp.length; y++) for (var x = 0; x < temp[y].length; x++) {
@@ -101,3 +101,5 @@ export class DistanceTransform extends Algorithm { //TODO finish implementation 
         return change;
     }
 }
+// Export the class
+module.exports.DistanceTransform = DistanceTransform;
