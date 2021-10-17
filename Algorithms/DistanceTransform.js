@@ -1,4 +1,5 @@
 import { Algorithm } from "./Algorithm";
+const _ = require('lodash');
 
 /**
  * The distance transform class handles the computations related to the distance
@@ -42,8 +43,10 @@ export class DistanceTransform extends Algorithm { //TODO finish implementation 
     constructor (room, flag) {
         let currentDate = new Date();
         super("Distance Transform " + flag + " - " + "m: " + currentDate.getMonth() + " d:" + currentDate.getDay() + " h:" + currentDate.getHours());
-        this.room = room;
         this.flag = flag;
+        this.room = room;
+        if (flag == 1) this.room = DistanceTransform.convertToCompute(room);
+        else this.room = _.cloneDeep(room);
     }
 
     /**
@@ -57,6 +60,20 @@ export class DistanceTransform extends Algorithm { //TODO finish implementation 
     }
 
     /**
+     * Converts the given matrix of 0 representing walls and 1 representing cells
+     * to compute into a matrix of 0 representing walls and -1 representing cells 
+     * to compute.
+     * 
+     * @param {number[][]} toConvert The matrix that needs converting.
+     * @returns Matrix that has been converted and is ready for use with the 
+     *          computing algorithm.
+     */
+    static convertToCompute (toConvert) {
+        for (var y = 0; y < toConvert.length; y++) for (var x = 0; x < toConvert[y].length; x++) if (toConvert[y][x] == 1) toConvert[y][x] = -1;
+        return toConvert;
+    }
+
+    /**
      * Manages execution of the Distance Transform. This method is safe and if
      * it is called after execution has completed it will do nothing. 
      */
@@ -64,8 +81,19 @@ export class DistanceTransform extends Algorithm { //TODO finish implementation 
         if (this.isFinished()) return;
         var completed;
         if (this.flag == 0) completed = !this.distanceTransformIterative();
-
+        else if (this.flag == 1) completed = !this.distanceTransformCompute();
         if (completed) this.markComplete();
+    }
+
+    /**
+     * This is the computing method for the distance transform algorithm. It has
+     * lower peak CPU usage but often takes longer on big matrixes. 
+     * 
+     * @return True if swaps were made and the algorithm is not finished. False
+     *         if the algorithm is finished.
+     */
+    distanceTransformCompute () {
+        return false;
     }
 
     /**
@@ -73,11 +101,11 @@ export class DistanceTransform extends Algorithm { //TODO finish implementation 
      * of each point to determine if the distance a point could be is higher than
      * currently reported. Each call it can make up to n^2 * 9 reads and n^2 writes.
      * 
-     * @return True if no swaps were made and the algorithm is finished. False
-     *         otherwise.
+     * @return True if swaps were made and the algorithm is not finished. False
+     *         if the algorithm is finished.
      */
-    distanceTransformIterative () { //TODO for some reason this hangs.
-        var temp = require('lodash').cloneDeep(this.room);
+    distanceTransformIterative () {
+        var temp = _.cloneDeep(this.room);
         var change = false;
 
         for (var y = 0; y < temp.length; y++) for (var x = 0; x < temp[y].length; x++) {
@@ -86,6 +114,7 @@ export class DistanceTransform extends Algorithm { //TODO finish implementation 
             var t = false;
             for (var dx = -1; dx <= 1; dx++) {
                 for (var dy = -1; dy <= 1; dy++) {
+                    if (y + dy < 0 || x + dx < 0 || y + dy == this.room.length || x + dx == this.room.length) continue;
                     if (this.room[y + dy][x + dx] < current) { // If the array goes out of bounds this will be false.
                         t = true;
                         break;
@@ -97,15 +126,8 @@ export class DistanceTransform extends Algorithm { //TODO finish implementation 
             temp[y][x]++;
             change = true;
         }
+
         this.room = temp;
-        // var s = "";
-        // for (var y = 0; y < this.room.length; y++) { 
-        //     for (var x = 0; x < this.room[y].length; x++) {
-        //         s += this.room[y][x] + " ";
-        //     }
-        //     s += '\n';
-        // }
-        // console.log(s);
         return change;
     }
 }
