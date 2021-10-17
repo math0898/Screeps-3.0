@@ -8,7 +8,7 @@ const _ = require('lodash');
  * 
  * @author Sugaku
  */
-export class DistanceTransform extends Algorithm { //TODO finish implementation and rewrite.
+export class DistanceTransform extends Algorithm {
 
     /**
      * This variable holds the representation of the room. This will then be updated
@@ -93,7 +93,24 @@ export class DistanceTransform extends Algorithm { //TODO finish implementation 
      *         if the algorithm is finished.
      */
     distanceTransformCompute () {
-        return false;
+        var change = false;
+        for (var y = 0; y < this.room.length; y++) for (var x = 0; x < this.room[y].length; x++) {
+            if (this.room[y][x] != -1) continue;
+            change = true;
+            var delta = 1;
+            var exit = false;
+            while (!exit) {
+                for (var dx = -delta; dx <= delta; dx++) {
+                    for (var dy = -delta; dy <= delta; dy++) {
+                        if (y + dy < 0 || x + dx < 0 || y + dy == this.room.length || x + dx == this.room.length) continue;
+                        if (this.room[y + dy][x + dx] == 0) exit = true;
+                    }
+                }
+                delta++;
+            }
+            this.room[y][x] = delta - 1;
+        }
+        return change;
     }
 
     /**
@@ -107,7 +124,6 @@ export class DistanceTransform extends Algorithm { //TODO finish implementation 
     distanceTransformIterative () {
         var temp = _.cloneDeep(this.room);
         var change = false;
-
         for (var y = 0; y < temp.length; y++) for (var x = 0; x < temp[y].length; x++) {
             var current = this.room[y][x];
             if (current == 0) continue;
@@ -126,7 +142,6 @@ export class DistanceTransform extends Algorithm { //TODO finish implementation 
             temp[y][x]++;
             change = true;
         }
-
         this.room = temp;
         return change;
     }
