@@ -9,3 +9,5 @@ screeps.sample.json
 tsconfig.json
 tsconfig.test.json
 test/
+.gitignore
+.vscode

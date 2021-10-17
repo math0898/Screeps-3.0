@@ -10,14 +10,7 @@ var debug:boolean = true;
 /**
  * Should the debug messages be sent to everyone?
  */
-var publicDebug:boolean = true;
-/**
- * A breif enum describing the possible goals creeps can carry out for their
- * colony.
- */
-export enum Goals {FILL = "Fill", FIX = "Fix", BUILD = "Build",
- UPGRADE = "Upgrade", REINFORCE = "Reinforce", STORE = "Store",
- TRADE = "Trade"}
+export const publicDebug:boolean = true;
 /**
  * This is an abstract class which holds of lot of useful utility functions for
  * creep roles in general. This class includes an optimized movement method, and
@@ -74,41 +67,6 @@ export abstract class Creep_Prototype {
      //Check how long the creep has to live and decrement if necessary
      if(creep.body.length * 3 == creep.ticksToLive) Game.rooms[creep.memory.room].memory.counts["Worker"]--;
    }
-  /**
-   * creepOptimizedMove optimizes the movement that creeps do. This is primarly
-   * done but greatly reducing the number of times a creep recalcualtes its
-   * pathing. It works well between rooms, judging from slack it works way
-   * better than the default moveTo(pos) for multiple rooms. I don't know why
-   * this is... it just happens to be. Should not be used for actions that
-   * require very reponsive creep movement such as combat!
-   * Runtime: O(c)
-   * @param creep - The creep being moved
-   * @param target - The target position you want the creep to reach.
-   */
-  static creepOptimizedMove(creep:Creep, target:RoomPosition){
-    //If the creep is fatigued exit
-    if (creep.fatigue > 0) return;
-    //Check if there's a path for this position or if we've reached the end of one
-    if (!(this.compareRoomPos(creep.memory.pathTarget, target)) || creep.memory.pathStep == creep.memory.path?.length) {
-      //Generate a path and save it to memory
-      creep.memory.path = creep.pos.findPathTo(target, {ignoreCreeps: false});
-      //Update the target of the path saved in memory
-      creep.memory.pathTarget = target;
-      //Start our step counter from 0
-      creep.memory.pathStep = 0;
-    }
-    //Read memory
-    var step:number | undefined = creep.memory.pathStep;
-    var path:PathStep[] | undefined = creep.memory.path;
-    //Quickly make some basic checks that we can actually move
-    if(path != undefined && step != undefined) {
-      //Move the creep and increase the step
-      if (path[step] != undefined) {
-        creep.move(path[step].direction);
-        creep.memory.pathStep!++;
-      }
-    }
-  }
   /**
    * The method creepFill makes the given creep fill nearby strucutres. The
    * strucuture it fills is determined by findClosestByPath.
