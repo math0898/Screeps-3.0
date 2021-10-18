@@ -1,6 +1,6 @@
-import { DistanceTransform } from "../../Algorithms/DistanceTransform";
+import { DistanceTransform } from "../../src/Algorithms/DistanceTransform";
 
-// Test cases.
+// Test cases with expected values.
 var fullWalls = new Array (new Array(0, 0, 0, 0, 0, 0, 0, 0),
                            new Array(0, 0, 0, 0, 0, 0, 0, 0),
                            new Array(0, 0, 0, 0, 0, 0, 0, 0),

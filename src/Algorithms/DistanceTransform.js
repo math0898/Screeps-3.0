@@ -131,7 +131,7 @@ export class DistanceTransform extends Algorithm {
             for (var dx = -1; dx <= 1; dx++) {
                 for (var dy = -1; dy <= 1; dy++) {
                     if (y + dy < 0 || x + dx < 0 || y + dy == this.room.length || x + dx == this.room.length) continue;
-                    if (this.room[y + dy][x + dx] < current) { // If the array goes out of bounds this will be false.
+                    if (this.room[y + dy][x + dx] < current) {
                         t = true;
                         break;
                     }
