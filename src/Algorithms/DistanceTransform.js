@@ -1,6 +1,5 @@
-import { Algorithm } from "./Algorithm";
-const _ = require('lodash');
-
+import Algorithm from "./Algorithm";
+import * as _ from "lodash";
 /**
  * The distance transform class handles the computations related to the distance
  * transform algorithm on a given room. The input space is just an 2d array 

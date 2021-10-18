@@ -5,7 +5,7 @@
  * 
  * @author Sugaku
  */
-export class Algorithm {
+export default class Algorithm {
 
     /**
      * The name of the algorithm. This is used for displaying it in console.

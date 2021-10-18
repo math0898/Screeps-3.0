@@ -1,4 +1,4 @@
-import { Algorithm } from "./Algorithm";
+import Algorithm from "./Algorithm";
 
 /**
  * The flood fill algorithm takes a map of the walls of a room and a point to
@@ -7,6 +7,6 @@ import { Algorithm } from "./Algorithm";
  * 
  * @author Sugaku
  */
-export class FloodFill extends Algorithm { //TODO requires implementation.
+export default class FloodFill extends Algorithm { //TODO requires implementation.
 
 }
