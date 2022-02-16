@@ -17,6 +17,6 @@ test("Weight accessor method should work. " + weight, () =>{
 test("Scheduled accessor method should work. " + time, () =>{
     expect(w.getScheduled()).toBe(time);
 });
-test("Process should report that it is complete.", () =>{
+test("Process should report that it is complete.", () => {
     expect(w.run()).toBe(true);
 });

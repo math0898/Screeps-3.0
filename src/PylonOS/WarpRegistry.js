@@ -13,7 +13,7 @@ export class WarpRegistry { // TODO: finish implementation.
      * priority given to each task by the scheduler on the last tick. This is so
      * that when rebuilding each schedule only a few swaps are needed.
      */
-    #registry;
+    #registry = [];
 
     /**
      * Nothing special needs to happens on construction. This just allocates the 
@@ -21,5 +21,30 @@ export class WarpRegistry { // TODO: finish implementation.
      */
     constructor () {
         this.#registry = new Array();
+    }
+
+    /**
+     * Accessor method for all the warps in the registry.
+     * 
+     * @return {Array} The list of warps saved in this registry.
+     */
+    getWarps () {
+        return this.#registry;
+    }
+
+    /**
+     * Adds the given warp to this warp registry.
+     * 
+     * @param {Warp} warp The warp to add to this warp registry.
+     */
+    addWarp (warp) {
+        this.#registry.push(warp);
+    }
+
+    /**
+     * Clears the registry.
+     */
+    clear () {
+        this.#registry = [];
     }
 }

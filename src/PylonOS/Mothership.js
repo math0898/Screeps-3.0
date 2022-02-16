@@ -31,4 +31,48 @@ export class Mothership {
     Mothership () {
 
     }
+
+    /**
+     * Accessor method for the oracle of the mothership.
+     * 
+     * @return The oracle used by this mothership.
+     */
+    getOracle () {
+        return this.#oracle;
+    }
+
+    /**
+     * Accessor method for the archive of this mothership.
+     * 
+     * @return The archive used by this mothership.
+     */
+    getArchive () {
+        return this.#archive;
+    }
+
+    /**
+     * Accessor method for the warp registry attached to this mothership.
+     * 
+     * @return The warp registry used by this mothership.
+     */
+    getWarpRegistry () {
+        return this.#warpRegistry;
+    }
+
+    /**
+     * The main loop of the Mothership. Called every tick to handle the logic of managing the operating system.
+     */
+    loop () {
+        for (w in this.#warpRegistry.getWarps()) w.run();
+        this.#warpRegistry.clear();
+    }
+
+    /**
+     * Adds the given warp to the warp registry.
+     * 
+     * @param {Warp} warp The warp to add to the warp registry.
+     */
+    addWarp (warp) {
+        this.#warpRegistry.addWarp(warp);
+    }
 }
