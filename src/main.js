@@ -1,4 +1,4 @@
-import { Miner } from "./economy/Miner";
+import { Miner } from "./creeps/economy/Miner";
 
 module.exports.loop = function () {
     for (let c in Game.creeps) {
