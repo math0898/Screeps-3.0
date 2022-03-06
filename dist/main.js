@@ -1,13 +1,31 @@
 'use strict';
 
-Object.defineProperty(exports, '__esModule', { value: true });
+class EconomicCreep {
+    // TODO
+}
 
-var main = {};
+class Miner extends EconomicCreep {
 
-var loop = main.loop = function () {
+    /**
+     * Creates a new Miner with the given Creep reference.
+     * 
+     * @param {Creep} c The creep object of this Miner. 
+     */
+    constructor (c) {
+        super();
+        this.creep = Game.creeps[c];
+    }
+
+    announceRole () {
+        this.creep.say("I'm a miner!");
+    }
+}
+
+module.exports.loop = function () {
+    for (let c in Game.creeps) {
+        var m = new Miner(c);
+        m.announceRole();
+    }
     console.log('Hello World!');
 };
-
-exports["default"] = main;
-exports.loop = loop;
 //# sourceMappingURL=main.js.map
