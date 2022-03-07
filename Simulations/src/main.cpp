@@ -1,6 +1,6 @@
 #include <iostream>
 #include "mining.hpp"
-#include "sugaku_colors.hpp"
+#include "color_codes.hpp"
 
 using namespace std;
 
