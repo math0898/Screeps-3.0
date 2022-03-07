@@ -49,5 +49,5 @@ void Source::tick () {
         if (energy < energyCapacity) ticks = 300;
     }
     if (ticks == 0) regen();
-    else ticks--;
+    else if (ticks != -1) ticks--;
 }

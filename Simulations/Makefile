@@ -4,14 +4,14 @@ build : main structures room creep mining
 main : main.cpp
 	g++ -c main.cpp
 
-structures : structures.h structures.cpp
+structures : structures.cpp
 	g++ -c structures.cpp
 
-room : room.h room.cpp
+room : room.cpp
 	g++ -c room.cpp
 
-creep : creep.h creep.cpp
+creep : creep.cpp
 	g++ -c creep.cpp
 
-mining : mining.cpp
+mining:
 	g++ -c mining.cpp

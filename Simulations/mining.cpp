@@ -39,6 +39,11 @@ class MiningSimulation {
          */
         int distance;
 
+        /**
+         * The starting distance between the creep and source.
+         */
+        int startingDistance;
+
     public:
 
         /**
@@ -47,7 +52,8 @@ class MiningSimulation {
          * @param distance The distance between the creep and the source.
          * @param creep    The creep that will be mining in this simulation.
          */
-        MiningSimulation (int distance, Creep* creep) : creep(creep), distance(distance) {
+        MiningSimulation (int distance, Creep* creep) : distance(distance), creep(creep) {
+            startingDistance = distance;
             room = new Room();
             creep->setRoom(room);
         };
@@ -70,11 +76,11 @@ class MiningSimulation {
          */
         void print () {
             cout << " ---- Creep Mine Simulation ----" << endl << endl;
-            cout << "Distance: " << distance << endl;
+            cout << "Starting Distance: " << startingDistance << endl;
             cout << "Creep Cost: " << creep->energyCost() << endl;
             cout << "Energy Mined: " << mined << endl;
             cout << "Net: " << mined - creep->energyCost() << endl;
-            cout << "Efficiency: " << ((float) mined) / ((float) (mined - creep->energyCost())) << endl;
+            cout << "Efficiency: " << ((float) (mined - creep->energyCost())) / ((float) mined) << endl;
         }
 };
 
@@ -89,7 +95,7 @@ void simulateMining () {
     b[3] = MOVE;
     b[4] = WORK;
     Creep* c = new Creep(nullptr, b, 5);
-    MiningSimulation* sim = new MiningSimulation(10, c);
+    MiningSimulation* sim = new MiningSimulation(11, c);
     sim->run();
     sim->print();
 }
