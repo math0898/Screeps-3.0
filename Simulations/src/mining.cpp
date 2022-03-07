@@ -102,13 +102,14 @@ class MiningSimulation {
  */
 void simulateMining (int energy, int distance) {
     int simulations = 0;
-    int max_size = energy / 10;
+    int max_size = energy / 50;
     int* b = new int[max_size];
     for (int current_size = 1; current_size < max_size; current_size++) {
         for (int i = 0; i < current_size; i++) b[i] = MOVE;
-        for (int i = -1; i < current_size; i++) {
-            if (i >= 0) b[i] = WORK;
+        for (int j = -1; j < current_size; j++) {
+            if (j >= 0) b[j] = WORK;
             Creep* c = new Creep(nullptr, b, current_size);
+            // cout << c->niceBody() << endl; TODO: Issue #5, https://github.com/math0898/Screeps-3.0/issues/5
             if (c->energyCost() > energy) continue;
             MiningSimulation* sim = new MiningSimulation(distance, c);
             simulations++;
