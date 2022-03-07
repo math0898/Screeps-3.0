@@ -20,7 +20,7 @@ export class Miner extends EconomicCreep {
      * @param {Number} capacity The amount of energy that can be spent on this creep.
      */
     getBody (dis, capacity) {
-        let body = new Number[3]; // TODO: Actually implement. Should perform some simulations.
+        if (capacity <= 300 && dis <= 100) return [ WORK, MOVE, WORK, WORK ];  
         return body;
     }
 }
