@@ -7,8 +7,8 @@
  * 
  * @copyright Copyright (c) 2022
  */
-#include "structures.h"
-#include "creep.h"
+#include "structures.hpp"
+#include "creep.hpp"
 
 using namespace creeps;
 using namespace structures;

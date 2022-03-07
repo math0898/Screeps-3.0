@@ -7,8 +7,8 @@
  * 
  * @copyright Copyright (c) 2022
  */
-#include "structures.h"
-#include "room.h"
+#include "structures.hpp"
+#include "room.hpp"
 
 using namespace structures;
 

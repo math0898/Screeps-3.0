@@ -8,8 +8,8 @@
  * @copyright Copyright (c) 2022
  */
 #pragma once
-#include "room.h"
-#include "structures.h"
+#include "room.hpp"
+#include "structures.hpp"
 
 #define MOVE 1
 #define WORK 2

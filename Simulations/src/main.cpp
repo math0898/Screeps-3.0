@@ -1,5 +1,5 @@
 #include <iostream>
-#include "mining.h"
+#include "mining.hpp"
 
 using namespace std;
 

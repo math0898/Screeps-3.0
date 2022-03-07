@@ -9,8 +9,8 @@
  * @copyright Copyright (c) 2022
  */
 #include <iostream>
-#include "room.h"
-#include "creep.h"
+#include "room.hpp"
+#include "creep.hpp"
 
 using namespace creeps;
 using namespace std;
