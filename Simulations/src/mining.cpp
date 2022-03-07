@@ -96,13 +96,13 @@ class MiningSimulation {
          * Prints the results of this simulation to cout.
          */
         void print () {
-            cout << endl << C_GRAY << " ---- " << C_GOLD << "Creep Mine Simulation " << C_GRAY << "----" << endl << endl;
-            cout << C_CYAN << "Starting Distance: " << C_RESET << startingDistance << endl;
-            cout << C_CYAN << "Creep Cost: " << C_RESET << creep->energyCost() << endl;
-            cout << C_CYAN << "Creep Body: " << C_RESET << creep->niceBody() << endl;
-            cout << C_CYAN << "Energy Mined: " << C_RESET << mined << endl;
-            cout << C_CYAN << "Net: " << C_RESET << getNet() << endl;
-            cout << C_CYAN << "Efficiency: " << C_RESET << getEfficiency() << endl;
+            cout << endl << C_GRAY << " ---- " << C_GOLD << "Creep Mine Simulation " << C_GRAY << "----" << C_RESET << endl << endl;
+            cout << C_CYAN << "Starting Distance" << C_RESET << ": " << C_RESET << startingDistance << endl;
+            cout << C_CYAN << "Creep Cost" << C_RESET << ": " << C_RED << creep->energyCost() << C_RESET << endl;
+            cout << C_CYAN << "Creep Body" << C_RESET << ": " << C_RESET << creep->niceBody() << endl;
+            cout << C_CYAN << "Energy Mined" << C_RESET << ": " << C_YELLOW << mined << C_RESET << endl;
+            cout << C_CYAN << "Net" << C_RESET << ": " << C_GREEN << getNet() << C_RESET << endl;
+            cout << C_CYAN << "Efficiency" << C_RESET << ": " << C_RESET << getEfficiency() << endl;
         }
 };
 
@@ -143,6 +143,5 @@ void simulateMining (int energy, int distance) { //TODO Allow distance to be set
     bestSim->print();
     delete(b);
     delete(bestSim);
-    cout << endl << "Ran " << simulations << " simulations. " 
-        << C_GRAY << "Took: " << dif.count() << "ms" << C_RESET << endl;
+    cout << endl << C_GRAY << "Ran " << simulations << " simulations. Took: " << dif.count() << "ms" << C_RESET << endl;
 }
