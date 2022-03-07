@@ -11,6 +11,7 @@
 #include <string>
 #include "room.hpp"
 #include "structures.hpp"
+#include "color_codes.hpp"
 
 #define MOVE 1
 #define WORK 2
@@ -58,7 +59,10 @@ namespace creeps {
              * @param body The body of this creep.
              * @param size The number of body parts this creep has.
              */
-            Creep (Room* room, int* body, int size) : room(room), body(body), size(size) {};
+            Creep (Room* room, int* body, int size) : room(room), size(size) {
+                this->body = new int[size];
+                for (int i = 0; i < size; i++) this->body[i] = body[i];
+            };
 
             /**
              * Runs the tick logic for this creep.
@@ -94,7 +98,7 @@ namespace creeps {
              * 
              * @return True if this creep lives, otherwise false.
              */
-            inline bool isAlive () {
+            const inline bool isAlive () {
                 return lifeSpan != 0;
             }
 
@@ -103,7 +107,7 @@ namespace creeps {
              * 
              * @return The total energy cost of this creep.
              */
-            inline int energyCost () {
+            const inline int energyCost () {
                 int count = 0;
                 for (int i = 0; i < size; i++) {
                     switch (body[i]) {
@@ -119,15 +123,15 @@ namespace creeps {
              * 
              * @return The body of this creep in a human readable format.
              */
-            inline std::string niceBody () {
-                std::string toReturn = "[ ";
+            const inline std::string niceBody () {
+                std::string toReturn = "\033[90m[ ";
                 for (int i = 0; i < size; i++) {
                     switch (body[i]) {
-                        case MOVE: toReturn += "MOVE "; break;
-                        case WORK: toReturn += "WORK "; break;
+                        case MOVE: toReturn += "\033[0mMOVE "; break; // C_RESET
+                        case WORK: toReturn += "\033[33mWORK "; break; // C_GOLD
                     }
                 }
-                toReturn += "]";
+                toReturn += "\033[90m]\033[0m";
                 return toReturn;
             } 
 
@@ -139,7 +143,7 @@ namespace creeps {
              * @param type The type of the body part to count.
              * @return The number of times this body part is present.
              */
-            inline int countParts (int type) {
+            const inline int countParts (int type) {
                 int count = 0;
                 for (int i = 0; i < size; i++) if (body[i] == type) count++;
                 return count;

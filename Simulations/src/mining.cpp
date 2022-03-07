@@ -9,11 +9,14 @@
  * @copyright Copyright (c) 2022
  */
 #include <iostream>
+#include <chrono>
 #include "room.hpp"
 #include "creep.hpp"
+#include "color_codes.hpp"
 
 using namespace creeps;
 using namespace std;
+using namespace std::chrono;
 
 class MiningSimulation {
 
@@ -68,6 +71,15 @@ class MiningSimulation {
         }
 
         /**
+         * Returns the float percentage (0 -> 1) of the efficiency of this simulation.
+         * 
+         * @return The float percentage which represents the efficiency.
+         */
+        float getEfficiency () {
+            return ((float) (mined - creep->energyCost())) / ((float) mined);
+        }
+
+        /**
          * Runs this mining simulation.
          */
         void run () {
@@ -84,13 +96,13 @@ class MiningSimulation {
          * Prints the results of this simulation to cout.
          */
         void print () {
-            cout << " ---- Creep Mine Simulation ----" << endl << endl;
-            cout << "Starting Distance: " << startingDistance << endl;
-            cout << "Creep Cost: " << creep->energyCost() << endl;
-            cout << "Creep Body: " << creep->niceBody() << endl;
-            cout << "Energy Mined: " << mined << endl;
-            cout << "Net: " << getNet() << endl;
-            cout << "Efficiency: " << ((float) (mined - creep->energyCost())) / ((float) mined) << endl;
+            cout << endl << C_GRAY << " ---- " << C_GOLD << "Creep Mine Simulation " << C_GRAY << "----" << endl << endl;
+            cout << C_CYAN << "Starting Distance: " << C_RESET << startingDistance << endl;
+            cout << C_CYAN << "Creep Cost: " << C_RESET << creep->energyCost() << endl;
+            cout << C_CYAN << "Creep Body: " << C_RESET << creep->niceBody() << endl;
+            cout << C_CYAN << "Energy Mined: " << C_RESET << mined << endl;
+            cout << C_CYAN << "Net: " << C_RESET << getNet() << endl;
+            cout << C_CYAN << "Efficiency: " << C_RESET << getEfficiency() << endl;
         }
 };
 
@@ -100,10 +112,13 @@ class MiningSimulation {
  * @param energy   The amount of energy that can be spent on any one creep.
  * @param distance The distance between the spawn and the source.
  */
-void simulateMining (int energy, int distance) {
-    int simulations = 0;
+void simulateMining (int energy, int distance) { //TODO Allow distance to be set notation.
+    auto start = high_resolution_clock::now();
+    long simulations = 0;
     int max_size = energy / 50;
     int* b = new int[max_size];
+    float best = 0;
+    MiningSimulation* bestSim = nullptr;
     for (int current_size = 1; current_size <= max_size; current_size++) {
         for (int i = 0; i < max_size; i++) b[i] = MOVE;
         for (int j = -1; j < current_size; j++) {
@@ -113,11 +128,21 @@ void simulateMining (int energy, int distance) {
             MiningSimulation* sim = new MiningSimulation(distance, c);
             simulations++;
             sim->run();
-            if (sim->getNet() > 0) sim->print();
-            delete(c);
-            delete(sim);
+            if (sim->getEfficiency() > best || bestSim == nullptr) {
+                delete(bestSim);
+                best = sim->getEfficiency();
+                bestSim = sim;
+            } else {
+                delete(c);
+                delete(sim);
+            }
         }
     }
+    auto stop = high_resolution_clock::now();
+    auto dif = duration_cast<milliseconds>(stop - start);
+    bestSim->print();
     delete(b);
-    cout << endl << "Ran " << simulations << " simulations" << endl;
+    delete(bestSim);
+    cout << endl << "Ran " << simulations << " simulations. " 
+        << C_GRAY << "Took: " << dif.count() << "ms" << C_RESET << endl;
 }
