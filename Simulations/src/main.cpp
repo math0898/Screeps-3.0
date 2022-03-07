@@ -1,12 +1,13 @@
 #include <iostream>
 #include "mining.hpp"
+#include "color_codes.hpp"
 
 using namespace std;
 
 int main () {
     cout << "Enter the simulation to run." << endl;
-    cout << "- mining" << endl;
-    cout << endl << "> ";
+    cout << C_GRAY << "-" << C_CYAN << " mining" << C_RESET << endl;
+    cout << endl << C_GRAY << "> " << C_RESET;
     string input;
     int param1;
     int param2;
