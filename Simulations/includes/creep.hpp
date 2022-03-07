@@ -107,8 +107,8 @@ namespace creeps {
                 int count = 0;
                 for (int i = 0; i < size; i++) {
                     switch (body[i]) {
-                        case MOVE: count += 50;
-                        case WORK: count += 80;
+                        case MOVE: count += 50; break;
+                        case WORK: count += 80; break;
                     }
                 }
                 return count;
@@ -123,8 +123,8 @@ namespace creeps {
                 std::string toReturn = "[ ";
                 for (int i = 0; i < size; i++) {
                     switch (body[i]) {
-                        case MOVE: toReturn += "MOVE ";
-                        case WORK: toReturn += "WORK ";
+                        case MOVE: toReturn += "MOVE "; break;
+                        case WORK: toReturn += "WORK "; break;
                     }
                 }
                 toReturn += "]";
