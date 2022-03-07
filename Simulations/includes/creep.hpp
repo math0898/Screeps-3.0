@@ -8,6 +8,7 @@
  * @copyright Copyright (c) 2022
  */
 #pragma once
+#include <string>
 #include "room.hpp"
 #include "structures.hpp"
 
@@ -19,7 +20,7 @@ namespace creeps {
     /**
      * The general creep class from which all others inherent.
      */
-    class Creep {
+    class Creep { // TODO deconstructor
 
         private:
 
@@ -112,6 +113,23 @@ namespace creeps {
                 }
                 return count;
             }
+
+            /**
+             * Returns the body of this creep in a nice readable format.
+             * 
+             * @return The body of this creep in a human readable format.
+             */
+            inline std::string niceBody () {
+                std::string toReturn = "[ ";
+                for (int i = 0; i < size; i++) {
+                    switch (body[i]) {
+                        case MOVE: toReturn += "MOVE ";
+                        case WORK: toReturn += "WORK ";
+                    }
+                }
+                toReturn += "]";
+                return toReturn;
+            } 
 
         private:
 

@@ -14,7 +14,7 @@ namespace structures {
     /**
      * The source class simulates how a source operates in screeps.
      */
-    class Source {
+    class Source { // TODO deconstructor
         
         private:
         

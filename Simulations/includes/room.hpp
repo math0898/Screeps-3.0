@@ -12,7 +12,7 @@
 
 using namespace structures;
 
-class Room {
+class Room { // TODO deconstructor
 
     private:
     

@@ -59,6 +59,15 @@ class MiningSimulation {
         };
 
         /**
+         * Returns the net gain in energy as a result of this mining creep.
+         * 
+         * @return The net gain in energy from this creep mining.
+         */
+        int getNet () {
+            return mined - creep->energyCost();
+        }
+
+        /**
          * Runs this mining simulation.
          */
         void run () {
@@ -78,24 +87,37 @@ class MiningSimulation {
             cout << " ---- Creep Mine Simulation ----" << endl << endl;
             cout << "Starting Distance: " << startingDistance << endl;
             cout << "Creep Cost: " << creep->energyCost() << endl;
+            cout << "Creep Body: " << creep->niceBody() << endl;
             cout << "Energy Mined: " << mined << endl;
-            cout << "Net: " << mined - creep->energyCost() << endl;
+            cout << "Net: " << getNet() << endl;
             cout << "Efficiency: " << ((float) (mined - creep->energyCost())) / ((float) mined) << endl;
         }
 };
 
 /**
- * Runs the mining simulation.
+ * Simulates mining creeps and their relative efficiency.
+ * 
+ * @param energy   The amount of energy that can be spent on any one creep.
+ * @param distance The distance between the spawn and the source.
  */
-void simulateMining () {
-    int* b = new int[5];
-    b[0] = WORK;
-    b[1] = WORK;
-    b[2] = MOVE;
-    b[3] = MOVE;
-    b[4] = WORK;
-    Creep* c = new Creep(nullptr, b, 5);
-    MiningSimulation* sim = new MiningSimulation(11, c);
-    sim->run();
-    sim->print();
+void simulateMining (int energy, int distance) {
+    int simulations = 0;
+    int max_size = energy / 10;
+    int* b = new int[max_size];
+    for (int current_size = 1; current_size < max_size; current_size++) {
+        for (int i = 0; i < current_size; i++) b[i] = MOVE;
+        for (int i = -1; i < current_size; i++) {
+            if (i >= 0) b[i] = WORK;
+            Creep* c = new Creep(nullptr, b, current_size);
+            if (c->energyCost() > energy) continue;
+            MiningSimulation* sim = new MiningSimulation(distance, c);
+            simulations++;
+            sim->run();
+            if (sim->getNet() > 0) sim->print();
+            delete(c);
+            delete(sim);
+        }
+    }
+    delete(b);
+    cout << endl << "Ran " << simulations << " simulations" << endl;
 }
