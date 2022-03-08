@@ -133,11 +133,11 @@ void simulateHarvesting (int energy, int distance) { // TODO Allow distance to b
     float best = 0;
     HarvestingSimulation* bestSim = nullptr;
     for (int current_size = 1; current_size <= max_size; current_size++) {
-        for (int i = 0; i < max_size; i++) b[i] = MOVE; // TODO Needs carry parts.
-        for (int k = 0; k < current_size; k++) {
-            for (int j = 0; j < k; j++) b[j] = CARRY;
-            for (int j = -1; j < current_size; j++) {
-                if (j >= 0) b[j] = WORK;
+        for (int j = -1; j < current_size; j++) {
+            for (int i = 0; i < max_size; i++) b[i] = MOVE;
+            for (int i = 0; i <= j; i++) b[i] = CARRY;
+            for (int k = -1; k < current_size; k++) {
+                if (k > -1) b[k] = WORK;
                 Creep* c = new Creep(nullptr, b, current_size);
                 if (c->energyCost() > energy) continue;
                 HarvestingSimulation* sim = new HarvestingSimulation(distance, c);

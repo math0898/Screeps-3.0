@@ -142,7 +142,7 @@ namespace creeps {
                     switch (body[i]) {
                         case MOVE: toReturn += "\033[97mMOVE "; break; // C_WHITE
                         case WORK: toReturn += "\033[33mWORK "; break; // C_GOLD
-                        case CARRY: toReturn += "\033[0mCARRY"; break; //C_RESET
+                        case CARRY: toReturn += "\033[0mCARRY "; break; //C_RESET
                     }
                 }
                 toReturn += "\033[90m]\033[0m";
