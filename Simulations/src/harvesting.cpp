@@ -130,7 +130,7 @@ void simulateHarvesting (int energy, int distance) { // TODO Allow distance to b
     long simulations = 0;
     int max_size = energy / 50;
     int* b = new int[max_size];
-    float best = 0;
+    int best = 0;
     HarvestingSimulation* bestSim = nullptr;
     for (int current_size = 1; current_size <= max_size; current_size++) {
         for (int j = -1; j < current_size; j++) {
@@ -143,9 +143,9 @@ void simulateHarvesting (int energy, int distance) { // TODO Allow distance to b
                 HarvestingSimulation* sim = new HarvestingSimulation(distance, c);
                 simulations++;
                 sim->run();
-                if (sim->getEfficiency() > best || bestSim == nullptr) {
+                if (sim->getNet() > best || bestSim == nullptr) {
                     delete(bestSim);
-                    best = sim->getEfficiency();
+                    best = sim->getNet();
                     bestSim = sim;
                 } else {
                     delete(c);

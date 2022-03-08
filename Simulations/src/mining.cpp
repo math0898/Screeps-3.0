@@ -117,7 +117,7 @@ void simulateMining (int energy, int distance) { //TODO Allow distance to be set
     long simulations = 0;
     int max_size = energy / 50;
     int* b = new int[max_size];
-    float best = 0;
+    int best = 0;
     MiningSimulation* bestSim = nullptr;
     for (int current_size = 1; current_size <= max_size; current_size++) {
         for (int i = 0; i < max_size; i++) b[i] = MOVE;
@@ -128,9 +128,9 @@ void simulateMining (int energy, int distance) { //TODO Allow distance to be set
             MiningSimulation* sim = new MiningSimulation(distance, c);
             simulations++;
             sim->run();
-            if (sim->getEfficiency() > best || bestSim == nullptr) {
+            if (sim->getNet() > best || bestSim == nullptr) {
                 delete(bestSim);
-                best = sim->getEfficiency();
+                best = sim->getNet();
                 bestSim = sim;
             } else {
                 delete(c);
