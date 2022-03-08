@@ -1,7 +1,8 @@
 #include <iostream>
-#include "mining.hpp"
-#include "harvesting.hpp"
-#include "color_codes.hpp"
+#include "simulations/mining.hpp"
+#include "simulations/harvesting.hpp"
+#include "framework/creep.hpp"
+#include "framework/color_codes.hpp"
 
 using namespace std;
 

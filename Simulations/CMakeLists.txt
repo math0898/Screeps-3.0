@@ -6,8 +6,11 @@ set(EXEC screeps-simulations)
 
 set(CMAKE_CXX_STANDARD 14)
 
+add_subdirectory(src/framework)
+add_subdirectory(src/simulations)
+
 include_directories(includes)
 
-file(GLOB SOURCES src/*.cpp)
+file(GLOB SOURCES src/main.cpp)
 
 add_executable(${EXEC} ${SOURCES})
