@@ -15,6 +15,7 @@
 
 #define MOVE 1
 #define WORK 2
+#define CARRY 3
 
 namespace creeps {
 
@@ -41,6 +42,16 @@ namespace creeps {
             int size;
 
             /**
+             * The amount of energy currently stored by this creep.
+             */
+            int energy{ 0 };
+
+            /**
+             * The amount of energy that can be stored by this creep.
+             */
+            int capacity;
+
+            /**
              * The fatigue of this creep. Creeps can only move when this value is zero.
              */
             int fatigue{ 0 };
@@ -62,6 +73,7 @@ namespace creeps {
             Creep (Room* room, int* body, int size) : room(room), size(size) {
                 this->body = new int[size];
                 for (int i = 0; i < size; i++) this->body[i] = body[i];
+                capacity = countParts(CARRY) * 50;
             };
 
             /**
@@ -113,6 +125,7 @@ namespace creeps {
                     switch (body[i]) {
                         case MOVE: count += 50; break;
                         case WORK: count += 80; break;
+                        case CARRY: count += 50; break;
                     }
                 }
                 return count;
@@ -127,13 +140,39 @@ namespace creeps {
                 std::string toReturn = "\033[90m[ ";
                 for (int i = 0; i < size; i++) {
                     switch (body[i]) {
-                        case MOVE: toReturn += "\033[0mMOVE "; break; // C_RESET
+                        case MOVE: toReturn += "\033[97mMOVE "; break; // C_WHITE
                         case WORK: toReturn += "\033[33mWORK "; break; // C_GOLD
+                        case CARRY: toReturn += "\033[0mCARRY"; break; //C_RESET
                     }
                 }
                 toReturn += "\033[90m]\033[0m";
                 return toReturn;
-            } 
+            }
+
+            /**
+             * Returns the amount of energy that can be carried by this creep.
+             * 
+             * @return The energy capacity of this creep.
+             */
+            const inline int getCapacity () {
+                return capacity;
+            }
+
+            /**
+             * Returns the amount of energy that is currently being carried by this creep.
+             * 
+             * @return The energy being carried by this creep.
+             */
+            const inline int getEnergy () {
+                return energy;
+            }
+
+            /**
+             * Dumps all the energy of this creep reseting their carried amount to 0.
+             */
+            inline void dumpEnergy () {
+                energy = 0;
+            }
 
         private:
 

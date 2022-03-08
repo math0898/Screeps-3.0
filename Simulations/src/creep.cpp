@@ -31,7 +31,10 @@ void Creep::tick () {
  * @return The amount of energy that was mined.
  */
 int Creep::mine (Source* source) {
-    return source->mine(countParts(WORK));
+    int result = source->mine(countParts(WORK));
+    energy += result;
+    if (energy > capacity) energy = capacity;
+    return result;
 }
 
 /**
