@@ -1,3 +1,3 @@
-add_library(Simulations mining.cpp harvesting.cpp)
+add_library(Simulations mining.cpp harvesting.cpp simulation.cpp)
 
-target_include_directories(Simulations PUBLIC ../../includes/simulations)
+target_link_libraries(Simulations Framework)
