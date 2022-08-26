@@ -116,6 +116,7 @@ void simulateMining (int energy, int distance) { //TODO Allow distance to be set
     auto start = high_resolution_clock::now();
     long simulations = 0;
     int max_size = energy / 50;
+    if (max_size > 50) max_size = 50;
     int* b = new int[max_size];
     int best = 0;
     MiningSimulation* bestSim = nullptr;

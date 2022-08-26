@@ -124,7 +124,7 @@ namespace creeps {
                 for (int i = 0; i < size; i++) {
                     switch (body[i]) {
                         case MOVE: count += 50; break;
-                        case WORK: count += 80; break;
+                        case WORK: count += 100; break;
                         case CARRY: count += 50; break;
                     }
                 }
