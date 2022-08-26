@@ -1,16 +1,11 @@
 import { EconomicCreep } from "./EconomicCreep";
 
+/**
+ * Miners walk to a source and mine the source until death.
+ * 
+ * @author Sugaku
+ */
 export class Miner extends EconomicCreep {
-
-    /**
-     * Creates a new Miner with the given Creep reference.
-     * 
-     * @param {Creep} c The creep object of this Miner. 
-     */
-    constructor (c) {
-        super();
-        this.creep = Game.creeps[c];
-    }
 
     /**
      * Generates the body for a Miner creep with the given
