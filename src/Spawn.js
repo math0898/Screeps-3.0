@@ -31,7 +31,7 @@ export class Spawns {
                     c = spawn.spawnCreep(new Harvester("").getBody(10, 300), this.generateName(spawn.room.name, "Harvester")); 
                     break;
             } // TODO: Finding the name needs to be done differently.
-            if (c == OK) Game.creeps[this.generateName(spawn.room.name, "Harvester")].memory = spawn.room.memory.spawnTarget; 
+            if (c == OK) Game.creeps[this.generateName(spawn.room.name, "Harvester")].memory.role = spawn.room.memory.spawnTarget; 
         }
     }
 }
