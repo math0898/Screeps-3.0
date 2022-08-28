@@ -18,7 +18,8 @@ class SmartCreep {
 }
 
 /**
- * EconomicCreeps are related to the general economy of the creep civilization.
+ * EconomicCreeps are related to the general economy of the creep civilization. They aren't given special privileges such
+ * as O(n) calls.
  * 
  * @author Sugaku
  */
@@ -52,19 +53,50 @@ class Miner extends EconomicCreep {
     }
 }
 
+console.log("Code Refreshed");
 require('lodash');
 
-let rooms = new Array();
+var rooms;
 
+/**
+ * Attempts to locate all the rooms currently under this bot's control. They are then placed into a helpful array to
+ * to be referenced later.
+ */
 function initRooms () {
-    for (var r in Game.rooms) {
-        let room = Game.rooms[r];
-        if (room.controller.my) rooms.push(room);
+    rooms = new Array();
+    for (var s in Game.structures) {
+        let structure = Game.structures[s];
+        if (structure.structureType != STRUCTURE_CONTROLLER) continue;
+        if (structure.my) rooms.push(structure.room.name);
     }
 }
 
+/**
+ * A collection of helpful functions for reporting how the bot is functioning to console.
+ * 
+ * @author Sugaku
+ */
+global.Report = module.exports = {
+
+    /**
+     * Lists all currently visible and controlled rooms in a readable format.
+     * 
+     * @returns 0 on success
+     */
+    rooms () {
+        console.log("Visible Rooms:");
+        for (let r in Game.rooms) console.log("- " + r);
+        console.log("Controlled Rooms:");
+        for (let r in rooms) console.log("- " + rooms[r] + " (" + Game.rooms[rooms[r]].controller.level + ")");
+        return 0;
+    }
+};
+
 initRooms();
 
+/**
+ * The game's main execution loop.
+ */
 module.exports.loop = function () {
     for (let c in Game.creeps) {
         var m = new Miner(c);
