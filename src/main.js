@@ -1,9 +1,14 @@
 console.log("Code Refreshed");
+
 let _ = require('lodash');
+let spawns = require('./Spawn');
+import { SugaRoom } from "./Room";
+import { Harvester } from "./creeps/economy/Harvester";
 import { Miner } from "./creeps/economy/Miner";
 
 var rooms;
 var visuals = new Array();
+var creeps = new Array();
 
 /**
  * Attempts to locate all the rooms currently under this bot's control. They are then placed into a helpful array to
@@ -14,8 +19,50 @@ function initRooms () {
     for (var s in Game.structures) {
         let structure = Game.structures[s];
         if (structure.structureType != STRUCTURE_CONTROLLER) continue;
-        if (structure.my) rooms.push(structure.room.name);
+        if (structure.my) rooms.push(new SugaRoom(structure.room.name));
     }
+}
+
+/**
+ * The main CreepAI execution loop. This loop also takes a census of alive creeps per room.
+ * 
+ * Runtime: O(n) -> n is the number of creeps.
+ */
+function creepAI () {
+    for (let c in Game.creeps) {
+        if (creeps[c] == undefined) {
+            switch (Game.creeps[c].memory.role) {
+                case "harvester": creeps[c] = new Harvester(c); break;
+            }
+        }
+        creeps[c].runLogic();
+        creeps[c].countSelf();
+    }
+}
+
+/**
+ * The main RoomAI execution loop. Rooms are allowed to search for structures and potential targets.
+ * 
+ * Runtime: O(r * (c + s)) -> r is the number of rooms, c is the number of creeps, and s is the number of structures. 
+ */
+function roomAI () {
+    for (let r in rooms) rooms[r].runLogic();
+}
+
+/**
+ * The main SpawnAI execution loop. Spawns pull spawn targets from room memory.
+ * 
+ * Runtime: O(n) -> n is the number of spawns.
+ */
+function spawnAI () {
+    for (let s in Game.spawns) spawns.runSpawnLogic(s);
+}
+
+/**
+ * Collects telemetry on the current state of the bot overall.
+ */
+function telemetry () {
+
 }
 
 /**
@@ -57,6 +104,18 @@ global.Report = {
         console.log("Controlled Rooms:");
         for (let r in rooms) console.log("- " + rooms[r] + " (" + Game.rooms[rooms[r]].controller.level + ")");
         return 0;
+    },
+
+    /**
+     * Lists all currently alive creeps in a readable format.
+     * 
+     * @returns 0 on success.
+     */
+    creeps() {
+        console.log("Alive Creeps:");
+        for (let c in creeps) console.log("- " + c + " (" + 
+                (Game.creeps[c] == undefined ? "undefined" : Memory.creeps[c].role) + ")");
+        return 0;
     }
 }
 
@@ -66,12 +125,12 @@ initRooms();
  * The game's main execution loop.
  */
 module.exports.loop = function () {
-    for (let c in Game.creeps) {
-        var m = new Miner(c);
-        m.announceRole();
-    }
+    creepAI();
+    roomAI();
+    spawnAI();
     for (let v in visuals) {
         if (v == "map") Game.map.visual.import(v);
         else global.Report.visualize(v);
     }
+    telemetry();
 }

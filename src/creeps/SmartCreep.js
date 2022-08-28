@@ -17,7 +17,7 @@ export class SmartCreep {
     /**
      * Announces the role of this creep to creep.say().
      */
-     announceRole () {
+    announceRole () {
         this.getCreep().say("⚙" + this.getCreep().memory.role);
     }
     
@@ -39,5 +39,21 @@ export class SmartCreep {
      */
     getBody (dis, capacity) {
         return [ MOVE ];
+    }
+
+    /**
+     * Runs the logic for this creep.
+     * 
+     * @return {Number} 0 - The logic ran successfully.
+     */
+    runLogic () {
+        return 0;
+    }
+
+    /**
+     * Called to have this creep add itself to the creep counts of their home room.
+     */
+    countSelf () {
+
     }
 }
