@@ -20,7 +20,7 @@ class SmartCreep {
      * Announces the role of this creep to creep.say().
      */
     announceRole () {
-        this.getCreep().say("⚙" + this.getCreep().memory.role);
+
     }
     
     /**
@@ -29,7 +29,7 @@ class SmartCreep {
      * @return {Creep} The creep object associated with this SmartCreep.
      */
     getCreep () {
-        return Game.creeps[creepName];
+        return Game.creeps[this.creepName];
     }
 
     /**
@@ -69,13 +69,23 @@ class SmartCreep {
 class EconomicCreep extends SmartCreep {
 
     /**
+     * Announces the role of this creep to creep.say().
+     */
+    announceRole () {
+        let creep = this.getCreep();
+        creep.say("⚙ " + creep.memory.role);
+    }
+
+    /**
      * Called to have this creep add itself to the creep counts of their home room.
      */
-    countSelf () {
+    countSelf () { // TODO: Simply doesn't work.
+        let role = this.getCreep().memory.role;
+        // console.log(role);
         let mem = this.getCreep().room.memory;
-        if (mem.census == undefined) mem.census = [];
-        if (mem.census[this.getCreep().memory.role] == undefined) mem.census[this.getCreep().memory.role] = 0;
-        mem.census[this.getCreep().memory.role]++;
+        if (mem.census[role] == undefined) mem.census[role] = 0;
+        mem.census[role] += 1;
+        // console.log(mem.census);
     }
 }
 
@@ -154,6 +164,15 @@ class Spawns {
 class SugaRoom {
 
     /**
+     * Resets the census counts for this room.
+     */
+    resetCounts () {
+        var room = this.getRoom();
+        room.memory.census = [];
+        room.memory.census["harvester"] = 0;
+    }
+
+    /**
      * Creates a new SugaRoom with the given room name.
      * 
      * @param {String} name The name of the room that will be attached to this SugaRoom.
@@ -176,7 +195,11 @@ class SugaRoom {
      */
     runLogic () {
         var room = this.getRoom(); // TODO: Allow an array of spawn targets.
-        if (room.memory.counts == undefined) room.memory.spawnTarget = "harvester";
+        if (room.memory.census == undefined) room.memory.spawnTarget = "harvester";
+        else room.memory.spawnTarget = undefined;
+        console.log(room.memory.census);
+        this.resetCounts();
+        console.log(room.memory.census);
     }
 }
 

@@ -9,12 +9,22 @@ import { SmartCreep } from "../SmartCreep";
 export class EconomicCreep extends SmartCreep {
 
     /**
+     * Announces the role of this creep to creep.say().
+     */
+    announceRole () {
+        let creep = this.getCreep();
+        creep.say("⚙ " + creep.memory.role);
+    }
+
+    /**
      * Called to have this creep add itself to the creep counts of their home room.
      */
-    countSelf () {
+    countSelf () { // TODO: Simply doesn't work.
+        let role = this.getCreep().memory.role;
+        // console.log(role);
         let mem = this.getCreep().room.memory;
-        if (mem.census == undefined) mem.census = [];
-        if (mem.census[this.getCreep().memory.role] == undefined) mem.census[this.getCreep().memory.role] = 0;
-        mem.census[this.getCreep().memory.role]++;
+        if (mem.census[role] == undefined) mem.census[role] = 0;
+        mem.census[role] += 1;
+        // console.log(mem.census);
     }
 }

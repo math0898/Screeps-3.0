@@ -6,6 +6,15 @@
 export class SugaRoom {
 
     /**
+     * Resets the census counts for this room.
+     */
+    resetCounts () {
+        var room = this.getRoom();
+        room.memory.census = [];
+        room.memory.census["harvester"] = 0;
+    }
+
+    /**
      * Creates a new SugaRoom with the given room name.
      * 
      * @param {String} name The name of the room that will be attached to this SugaRoom.
@@ -28,6 +37,10 @@ export class SugaRoom {
      */
     runLogic () {
         var room = this.getRoom(); // TODO: Allow an array of spawn targets.
-        if (room.memory.counts == undefined) room.memory.spawnTarget = "harvester";
+        if (room.memory.census == undefined) room.memory.spawnTarget = "harvester";
+        else room.memory.spawnTarget = undefined;
+        console.log(room.memory.census);
+        this.resetCounts();
+        console.log(room.memory.census);
     }
 }

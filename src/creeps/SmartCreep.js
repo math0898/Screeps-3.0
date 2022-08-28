@@ -18,7 +18,7 @@ export class SmartCreep {
      * Announces the role of this creep to creep.say().
      */
     announceRole () {
-        this.getCreep().say("⚙" + this.getCreep().memory.role);
+
     }
     
     /**
@@ -27,7 +27,7 @@ export class SmartCreep {
      * @return {Creep} The creep object associated with this SmartCreep.
      */
     getCreep () {
-        return Game.creeps[creepName];
+        return Game.creeps[this.creepName];
     }
 
     /**
