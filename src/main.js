@@ -1,7 +1,7 @@
 console.log("Code Refreshed");
 
 let _ = require('lodash');
-let spawns = require('./Spawn');
+import { Spawns } from "./Spawn";
 import { SugaRoom } from "./Room";
 import { Harvester } from "./creeps/economy/Harvester";
 import { Miner } from "./creeps/economy/Miner";
@@ -55,7 +55,7 @@ function roomAI () {
  * Runtime: O(n) -> n is the number of spawns.
  */
 function spawnAI () {
-    for (let s in Game.spawns) spawns.runSpawnLogic(s);
+    for (let s in Game.spawns) Spawns.runSpawnLogic(s);
 }
 
 /**

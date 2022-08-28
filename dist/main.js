@@ -19,7 +19,7 @@ class SmartCreep {
     /**
      * Announces the role of this creep to creep.say().
      */
-     announceRole () {
+    announceRole () {
         this.getCreep().say("⚙" + this.getCreep().memory.role);
     }
     
@@ -42,6 +42,22 @@ class SmartCreep {
     getBody (dis, capacity) {
         return [ MOVE ];
     }
+
+    /**
+     * Runs the logic for this creep.
+     * 
+     * @return {Number} 0 - The logic ran successfully.
+     */
+    runLogic () {
+        return 0;
+    }
+
+    /**
+     * Called to have this creep add itself to the creep counts of their home room.
+     */
+    countSelf () {
+
+    }
 }
 
 /**
@@ -52,14 +68,24 @@ class SmartCreep {
  */
 class EconomicCreep extends SmartCreep {
 
+    /**
+     * Called to have this creep add itself to the creep counts of their home room.
+     */
+    countSelf () {
+        let mem = this.getCreep().room.memory;
+        if (mem.census == undefined) mem.census = [];
+        if (mem.census[this.getCreep().memory.role] == undefined) mem.census[this.getCreep().memory.role] = 0;
+        mem.census[this.getCreep().memory.role]++;
+    }
 }
 
 /**
- * Miners walk to a source and mine the source until death.
+ * Harvesters are a narrow minded version of workers. They gather resources from sources; then fill spawns and extensions
+ * with the energy they harvest.
  * 
  * @author Sugaku
  */
-class Miner extends EconomicCreep {
+class Harvester extends EconomicCreep {
 
     /**
      * Returns the body that should be attached to this creep given the estimated move distance and available energy.
@@ -69,16 +95,98 @@ class Miner extends EconomicCreep {
      * @return {Number[]} The best body for this task with the given information.
      */
     getBody (dis, capacity) {
-        if (capacity <= 300 && dis <= 100) return [ WORK, MOVE, WORK, WORK ];  
+        if (capacity <= 300 && dis <= 100) return [ WORK, MOVE, CARRY, CARRY, MOVE ];  
         return body;
+    }
+
+    /**
+     * Runs the logic for this creep.
+     * 
+     * @return {Number} 0 - The logic ran successfully.
+     */
+    runLogic () {
+        this.announceRole();
+        return 0;
+    }
+}
+
+/**
+ * Spawns don't need have their own object each so we need only define a function. Hance the static methods.
+ * 
+ * @author Sugaku
+ */
+class Spawns {
+
+    /**
+     * A simple utility method to format creep names.
+     * 
+     * @param {String} room This creep will spawn into.
+     * @param {String} role The role this creep will be given. 
+     */
+    static generateName (room, role) {
+        return "[" + room + "] " + role + " " + Game.time;
+    }
+
+    /**
+     * Runs general spawning logic on the given spawn.
+     * 
+     * @param {String} s The name of the spawn to run logic on.
+     */
+    static runSpawnLogic (s) {
+        let spawn = Game.spawns[s];
+        if (spawn.room.memory.spawnTarget != undefined) {
+            var c = -1;
+            switch (spawn.room.memory.spawnTarget) { // TODO: Make getBody() static.
+                case "harvester": 
+                    c = spawn.spawnCreep(new Harvester("").getBody(10, 300), this.generateName(spawn.room.name, "Harvester")); 
+                    break;
+            } // TODO: Finding the name needs to be done differently.
+            if (c == OK) Game.creeps[this.generateName(spawn.room.name, "Harvester")].memory = spawn.room.memory.spawnTarget; 
+        }
+    }
+}
+
+/**
+ * An inferior version of a room with some more advanced logic when needed.
+ * 
+ * @author Sugaku
+ */
+class SugaRoom {
+
+    /**
+     * Creates a new SugaRoom with the given room name.
+     * 
+     * @param {String} name The name of the room that will be attached to this SugaRoom.
+     */
+    constructor (name) {
+        this.name = name;
+    }
+
+    /**
+     * Grabs the RoomPrototype from the game.
+     * 
+     * @return {Room} The game room instance attached to this SugaRoom.
+     */
+    getRoom () {
+        return Game.rooms[this.name];
+    }
+
+    /**
+     * Runs room logic for this room.
+     */
+    runLogic () {
+        var room = this.getRoom(); // TODO: Allow an array of spawn targets.
+        if (room.memory.counts == undefined) room.memory.spawnTarget = "harvester";
     }
 }
 
 console.log("Code Refreshed");
+
 require('lodash');
 
 var rooms;
 var visuals = new Array();
+var creeps = new Array();
 
 /**
  * Attempts to locate all the rooms currently under this bot's control. They are then placed into a helpful array to
@@ -89,8 +197,43 @@ function initRooms () {
     for (var s in Game.structures) {
         let structure = Game.structures[s];
         if (structure.structureType != STRUCTURE_CONTROLLER) continue;
-        if (structure.my) rooms.push(structure.room.name);
+        if (structure.my) rooms.push(new SugaRoom(structure.room.name));
     }
+}
+
+/**
+ * The main CreepAI execution loop. This loop also takes a census of alive creeps per room.
+ * 
+ * Runtime: O(n) -> n is the number of creeps.
+ */
+function creepAI () {
+    for (let c in Game.creeps) {
+        if (creeps[c] == undefined) {
+            switch (Game.creeps[c].memory.role) {
+                case "harvester": creeps[c] = new Harvester(c); break;
+            }
+        }
+        creeps[c].runLogic();
+        creeps[c].countSelf();
+    }
+}
+
+/**
+ * The main RoomAI execution loop. Rooms are allowed to search for structures and potential targets.
+ * 
+ * Runtime: O(r * (c + s)) -> r is the number of rooms, c is the number of creeps, and s is the number of structures. 
+ */
+function roomAI () {
+    for (let r in rooms) rooms[r].runLogic();
+}
+
+/**
+ * The main SpawnAI execution loop. Spawns pull spawn targets from room memory.
+ * 
+ * Runtime: O(n) -> n is the number of spawns.
+ */
+function spawnAI () {
+    for (let s in Game.spawns) Spawns.runSpawnLogic(s);
 }
 
 /**
@@ -132,6 +275,18 @@ global.Report = {
         console.log("Controlled Rooms:");
         for (let r in rooms) console.log("- " + rooms[r] + " (" + Game.rooms[rooms[r]].controller.level + ")");
         return 0;
+    },
+
+    /**
+     * Lists all currently alive creeps in a readable format.
+     * 
+     * @returns 0 on success.
+     */
+    creeps() {
+        console.log("Alive Creeps:");
+        for (let c in creeps) console.log("- " + c + " (" + 
+                (Game.creeps[c] == undefined ? "undefined" : Memory.creeps[c].role) + ")");
+        return 0;
     }
 };
 
@@ -141,10 +296,9 @@ initRooms();
  * The game's main execution loop.
  */
 module.exports.loop = function () {
-    for (let c in Game.creeps) {
-        var m = new Miner(c);
-        m.announceRole();
-    }
+    creepAI();
+    roomAI();
+    spawnAI();
     for (let v in visuals) {
         if (v == "map") Game.map.visual.import(v);
         else global.Report.visualize(v);

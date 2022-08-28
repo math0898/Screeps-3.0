@@ -28,6 +28,6 @@ export class SugaRoom {
      */
     runLogic () {
         var room = this.getRoom(); // TODO: Allow an array of spawn targets.
-        if (room.memory.counts == undefined) this.memory.spawnTarget = "harvester";
+        if (room.memory.counts == undefined) room.memory.spawnTarget = "harvester";
     }
 }
