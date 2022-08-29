@@ -48,7 +48,7 @@ export class SugaRoom {
         if (room.memory.fill == undefined 
             || Game.getObjectById(room.memory.fill) == undefined 
             || Game.getObjectById(room.memory.fill).store.getFreeCapacity() == 0) {
-            let low = room.find(FIND_STRUCTURES, {filter: s => (s.structureType == STRUCTURE_SPAWN && s.store.getFreeCapacity() > 0)});
+            let low = room.find(FIND_STRUCTURES, {filter: (s) => (s.structureType == STRUCTURE_SPAWN && s.store.getFreeCapacity() > 0)});
             console.log();
             if (low.length == 0) room.memory.fill = undefined;
             else room.memory.fill = low[0].id;
