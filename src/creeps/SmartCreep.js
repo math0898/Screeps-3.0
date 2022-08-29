@@ -42,6 +42,37 @@ export class SmartCreep {
     }
 
     /**
+     * An optimized version of the creep.moveTo() command.
+     * 
+     * Self plagiarized from https://github.com/math0898/Screeps-2.0/blob/main/src/CreepTypes/CreepRole.ts#L31
+     * 
+     * @param {RoomPosition} pos The target position to move to.
+     */
+    smartMove (pos) {
+        let creep = this.getCreep();
+        if (creep.fatigue > 0) return -11; //Creep is fatigued
+
+        const step = creep.memory.pathStep;
+        const path = creep.memory.path;
+      
+        if (creep.memory.pathTarget == creep.pos || path == undefined || step == path.length) {
+          creep.memory.path = creep.pos.findPathTo(pos, {ignoreCreeps: false});
+          creep.memory.pathTarget = pos.pos;
+          creep.memory.pathStep = 0;
+          return 1; //Path found
+        }
+      
+        if(path != undefined && step != undefined) {
+          if (path[step] != undefined) {
+            creep.move(path[step].direction);
+            creep.memory.pathStep = step + 1;
+            return 0; //Function completed as intended
+          }
+        }
+        return -666; //Uh....
+    }
+
+    /**
      * Runs the logic for this creep.
      * 
      * @return {Number} 0 - The logic ran successfully.

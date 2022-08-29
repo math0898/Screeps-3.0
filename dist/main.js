@@ -44,6 +44,37 @@ class SmartCreep {
     }
 
     /**
+     * An optimized version of the creep.moveTo() command.
+     * 
+     * Self plagiarized from https://github.com/math0898/Screeps-2.0/blob/main/src/CreepTypes/CreepRole.ts#L31
+     * 
+     * @param {RoomPosition} pos The target position to move to.
+     */
+    smartMove (pos) {
+        let creep = this.getCreep();
+        if (creep.fatigue > 0) return -11; //Creep is fatigued
+
+        const step = creep.memory.pathStep;
+        const path = creep.memory.path;
+      
+        if (creep.memory.pathTarget == creep.pos || path == undefined || step == path.length) {
+          creep.memory.path = creep.pos.findPathTo(pos, {ignoreCreeps: false});
+          creep.memory.pathTarget = pos.pos;
+          creep.memory.pathStep = 0;
+          return 1; //Path found
+        }
+      
+        if(path != undefined && step != undefined) {
+          if (path[step] != undefined) {
+            creep.move(path[step].direction);
+            creep.memory.pathStep = step + 1;
+            return 0; //Function completed as intended
+          }
+        }
+        return -666; //Uh....
+    }
+
+    /**
      * Runs the logic for this creep.
      * 
      * @return {Number} 0 - The logic ran successfully.
@@ -115,6 +146,17 @@ class Harvester extends EconomicCreep {
      * @return {Number} 0 - The logic ran successfully.
      */
     runLogic () {
+        let creep = this.getCreep();
+        let room = creep.room;
+        if (creep.memory.working) {
+            let fill = Game.getObjectById(room.memory.fill);
+            if (creep.transfer(fill, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) this.smartMove(fill);
+            if (creep.store[RESOURCE_ENERGY] == 0) creep.memory.working = true;
+        } else {
+            let source = Game.getObjectById(room.memory.sources[0]);
+            if (creep.harvest(source) == ERR_NOT_IN_RANGE) this.smartMove(source);
+            if (creep.store[RESOURCE_ENERGY] == creep.store.getCapacity()) creep.memory.working = true;
+        }
         this.announceRole();
         return 0;
     }
@@ -179,6 +221,10 @@ class SugaRoom {
      */
     constructor (name) {
         this.name = name;
+        let room = Game.rooms[name];
+        let sources = room.find(FIND_SOURCES);
+        room.memory.sources = [];
+        for (var i = 0; i < sources.length; i++) room.memory.sources[i] = sources[i].id;
     }
 
     /**
@@ -196,10 +242,19 @@ class SugaRoom {
     runLogic () {
         var room = this.getRoom(); // TODO: Allow an array of spawn targets.
         if (room.memory.census == undefined) room.memory.spawnTarget = "harvester";
+        else if (room.memory.census["harvester"] == undefined || room.memory.census["harvester"] < 3) room.memory.spawnTarget = "harvester";
         else room.memory.spawnTarget = undefined;
-        console.log(room.memory.census);
+
+        if (room.memory.fill == undefined 
+            || Game.getObjectById(room.memory.fill) == undefined 
+            || Game.getObjectById(room.memory.fill).store.getFreeCapacity() == 0) {
+            let low = room.find(FIND_STRUCTURES, {filter: s => (s.structureType == STRUCTURE_SPAWN && s.store.getFreeCapacity() > 0)});
+            console.log();
+            if (low.length == 0) room.memory.fill = undefined;
+            else room.memory.fill = low[0].id;
+        }
+
         this.resetCounts();
-        console.log(room.memory.census);
     }
 }
 

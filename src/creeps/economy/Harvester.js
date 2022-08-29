@@ -29,11 +29,11 @@ export class Harvester extends EconomicCreep {
         let creep = this.getCreep();
         let room = creep.room;
         if (creep.memory.working) {
-            let fill = Game.getObjectById(room.memory.fill[0]);
+            let fill = Game.getObjectById(room.memory.fill);
             if (creep.transfer(fill, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) this.smartMove(fill);
             if (creep.store[RESOURCE_ENERGY] == 0) creep.memory.working = true;
         } else {
-            let source = Game.getObjectById(room.memory.source[0]);
+            let source = Game.getObjectById(room.memory.sources[0]);
             if (creep.harvest(source) == ERR_NOT_IN_RANGE) this.smartMove(source);
             if (creep.store[RESOURCE_ENERGY] == creep.store.getCapacity()) creep.memory.working = true;
         }
