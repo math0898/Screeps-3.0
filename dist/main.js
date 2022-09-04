@@ -299,8 +299,8 @@ class Spawns {
         let spawn = Game.spawns[s];
         if (spawn.room.memory.spawnTarget != undefined) {
             var c = -1;
-            var n;
-            switch (spawn.room.memory.spawnTarget) { // TODO: Make getBody() static.
+            var n; // TODO: Find a way to increase this number on subsequent spawns in same room.
+            switch (spawn.room.memory.spawnTarget[0]) { // TODO: Make getBody() static.
                 case "harvester":
                     n = "Harvester";
                     c = spawn.spawnCreep(new Harvester("").getBody(10, 300), this.generateName(spawn.room.name, n)); 
@@ -314,7 +314,7 @@ class Spawns {
                     c = spawn.spawnCreep(new Scout("").getBody(10, 300), this.generateName(spawn.room.name, n));
                     break;
             } // TODO: Finding the name needs to be done differently.
-            if (c == OK) Game.creeps[this.generateName(spawn.room.name, n)].memory.role = spawn.room.memory.spawnTarget;
+            if (c == OK) Game.creeps[this.generateName(spawn.room.name, n)].memory.role = spawn.room.memory.spawnTarget[0];
         }
     }
 }
@@ -358,15 +358,26 @@ class SugaRoom {
     }
 
     /**
+     * Identifies potential spawn targets for this room.
+     */
+    identifySpawnTargets () {
+        let room = this.getRoom();
+
+        room.memory.spawnTarget = [];
+
+        if (room.memory.census == undefined) room.memory.spawnTarget.push("harvester");
+        if (Game.flags["Scout " + room.name] != undefined && (room.memory.census["scout"] == undefined || room.memory.census["scout"] < 1)) room.memory.spawnTarget.push("scout");
+        if (room.memory.census["harvester"] == undefined || room.memory.census["harvester"] < 3) room.memory.spawnTarget.push("harvester");
+        if (room.memory.census["upgrader"] == undefined || room.memory.census["upgrader"] < 3) room.memory.spawnTarget.push("upgrader");
+        if (room.memory.spawnTarget.length == 0) room.memory.spawnTarget = undefined;
+    }
+
+    /**
      * Runs room logic for this room.
      */
     runLogic () {
         var room = this.getRoom(); // TODO: Allow an array of spawn targets.
-        if (room.memory.census == undefined) room.memory.spawnTarget = "harvester";
-        else if (Game.flags["Scout " + room.name] != undefined && (room.memory.census["scout"] == undefined | room.memory.census["scout"] < 1)) room.memory.spawnTarget = "scout";
-        else if (room.memory.census["harvester"] == undefined || room.memory.census["harvester"] < 3) room.memory.spawnTarget = "harvester";
-        else if (room.memory.census["upgrader"] == undefined || room.memory.census["upgrader"] < 3) room.memory.spawnTarget = "upgrader";
-        else room.memory.spawnTarget = undefined;
+        this.identifySpawnTargets();
 
         if (room.memory.fill == undefined 
             || Game.getObjectById(room.memory.fill) == undefined 

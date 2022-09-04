@@ -28,8 +28,8 @@ export class Spawns {
         let spawn = Game.spawns[s];
         if (spawn.room.memory.spawnTarget != undefined) {
             var c = -1;
-            var n;
-            switch (spawn.room.memory.spawnTarget) { // TODO: Make getBody() static.
+            var n; // TODO: Find a way to increase this number on subsequent spawns in same room.
+            switch (spawn.room.memory.spawnTarget[0]) { // TODO: Make getBody() static.
                 case "harvester":
                     n = "Harvester";
                     c = spawn.spawnCreep(new Harvester("").getBody(10, 300), this.generateName(spawn.room.name, n)); 
@@ -43,7 +43,7 @@ export class Spawns {
                     c = spawn.spawnCreep(new Scout("").getBody(10, 300), this.generateName(spawn.room.name, n));
                     break;
             } // TODO: Finding the name needs to be done differently.
-            if (c == OK) Game.creeps[this.generateName(spawn.room.name, n)].memory.role = spawn.room.memory.spawnTarget;
+            if (c == OK) Game.creeps[this.generateName(spawn.room.name, n)].memory.role = spawn.room.memory.spawnTarget[0];
         }
     }
 }
