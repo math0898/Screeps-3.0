@@ -1,12 +1,9 @@
 import { EconomicCreep } from "./EconomicCreep";
 
 /**
- * Harvesters are a narrow minded version of workers. They gather resources from sources; then fill spawns and extensions
- * with the energy they harvest.
  * 
- * @author Sugaku
  */
-export class Harvester extends EconomicCreep {
+export class Upgrader extends EconomicCreep {
 
     /**
      * Returns the body that should be attached to this creep given the estimated move distance and available energy.
@@ -15,7 +12,7 @@ export class Harvester extends EconomicCreep {
      * @param {Number} capacity The amount of energy that can be spent on this creep.
      * @return {Number[]} The best body for this task with the given information.
      */
-    getBody (dis, capacity) {
+     getBody (dis, capacity) {
         if (capacity <= 300 && dis <= 100) return [ WORK, MOVE, CARRY, CARRY, MOVE ];  
         return body;
     }
@@ -29,8 +26,8 @@ export class Harvester extends EconomicCreep {
         let creep = this.getCreep();
         let room = creep.room;
         if (creep.memory.working) {
-            let fill = Game.getObjectById(room.memory.fill);
-            if (creep.transfer(fill, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) this.smartMove(fill);
+            let controller = room.controller;
+            if (creep.upgradeController(controller) == ERR_NOT_IN_RANGE) this.smartMove(controller);
             if (creep.store.getUsedCapacity(RESOURCE_ENERGY) == 0) creep.memory.working = false;
         } else {
             let source = Game.getObjectById(room.memory.sources[0]);

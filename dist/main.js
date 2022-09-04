@@ -112,11 +112,9 @@ class EconomicCreep extends SmartCreep {
      */
     countSelf () { // TODO: Simply doesn't work.
         let role = this.getCreep().memory.role;
-        // console.log(role);
         let mem = this.getCreep().room.memory;
         if (mem.census[role] == undefined) mem.census[role] = 0;
         mem.census[role] += 1;
-        // console.log(mem.census);
     }
 }
 
@@ -151,7 +149,46 @@ class Harvester extends EconomicCreep {
         if (creep.memory.working) {
             let fill = Game.getObjectById(room.memory.fill);
             if (creep.transfer(fill, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) this.smartMove(fill);
-            if (creep.store[RESOURCE_ENERGY] == 0) creep.memory.working = true;
+            if (creep.store.getUsedCapacity(RESOURCE_ENERGY) == 0) creep.memory.working = false;
+        } else {
+            let source = Game.getObjectById(room.memory.sources[0]);
+            if (creep.harvest(source) == ERR_NOT_IN_RANGE) this.smartMove(source);
+            if (creep.store[RESOURCE_ENERGY] == creep.store.getCapacity()) creep.memory.working = true;
+        }
+        this.announceRole();
+        return 0;
+    }
+}
+
+/**
+ * 
+ */
+class Upgrader extends EconomicCreep {
+
+    /**
+     * Returns the body that should be attached to this creep given the estimated move distance and available energy.
+     * 
+     * @param {Number} dis      The expected number of tiles this creep may need to walk.
+     * @param {Number} capacity The amount of energy that can be spent on this creep.
+     * @return {Number[]} The best body for this task with the given information.
+     */
+     getBody (dis, capacity) {
+        if (capacity <= 300 && dis <= 100) return [ WORK, MOVE, CARRY, CARRY, MOVE ];  
+        return body;
+    }
+
+    /**
+     * Runs the logic for this creep.
+     * 
+     * @return {Number} 0 - The logic ran successfully.
+     */
+    runLogic () {
+        let creep = this.getCreep();
+        let room = creep.room;
+        if (creep.memory.working) {
+            let controller = room.controller;
+            if (creep.upgradeController(controller) == ERR_NOT_IN_RANGE) this.smartMove(controller);
+            if (creep.store.getUsedCapacity(RESOURCE_ENERGY) == 0) creep.memory.working = false;
         } else {
             let source = Game.getObjectById(room.memory.sources[0]);
             if (creep.harvest(source) == ERR_NOT_IN_RANGE) this.smartMove(source);
@@ -188,12 +225,17 @@ class Spawns {
         let spawn = Game.spawns[s];
         if (spawn.room.memory.spawnTarget != undefined) {
             var c = -1;
+            var n;
             switch (spawn.room.memory.spawnTarget) { // TODO: Make getBody() static.
-                case "harvester": 
-                    c = spawn.spawnCreep(new Harvester("").getBody(10, 300), this.generateName(spawn.room.name, "Harvester")); 
+                case "harvester":
+                    n = "Harvester";
+                    c = spawn.spawnCreep(new Harvester("").getBody(10, 300), this.generateName(spawn.room.name, n)); 
                     break;
+                case "upgrader":
+                    n = "Upgrader";
+                    c = spawn.spawnCreep(new Upgrader("").getBody(10, 300), this.generateName(spawn.room.name, n));
             } // TODO: Finding the name needs to be done differently.
-            if (c == OK) Game.creeps[this.generateName(spawn.room.name, "Harvester")].memory.role = spawn.room.memory.spawnTarget; 
+            if (c == OK) Game.creeps[this.generateName(spawn.room.name, n)].memory.role = spawn.room.memory.spawnTarget; 
         }
     }
 }
@@ -243,12 +285,13 @@ class SugaRoom {
         var room = this.getRoom(); // TODO: Allow an array of spawn targets.
         if (room.memory.census == undefined) room.memory.spawnTarget = "harvester";
         else if (room.memory.census["harvester"] == undefined || room.memory.census["harvester"] < 3) room.memory.spawnTarget = "harvester";
+        else if (room.memory.census["upgrader"] == undefined || room.memory.census["upgrader"] < 3) room.memory.spawnTarget = "upgrader";
         else room.memory.spawnTarget = undefined;
 
         if (room.memory.fill == undefined 
             || Game.getObjectById(room.memory.fill) == undefined 
             || Game.getObjectById(room.memory.fill).store.getFreeCapacity() == 0) {
-            let low = room.find(FIND_STRUCTURES, {filter: s => (s.structureType == STRUCTURE_SPAWN && s.store.getFreeCapacity() > 0)});
+            let low = room.find(FIND_MY_STRUCTURES, {filter: (s) => (s.store != undefined && s.structureType != STRUCTURE_STORAGE && s.store.getFreeCapacity(RESOURCE_ENERGY) > 0)});
             console.log();
             if (low.length == 0) room.memory.fill = undefined;
             else room.memory.fill = low[0].id;
@@ -289,6 +332,7 @@ function creepAI () {
         if (creeps[c] == undefined) {
             switch (Game.creeps[c].memory.role) {
                 case "harvester": creeps[c] = new Harvester(c); break;
+                case "upgrader": creeps[c] = new Upgrader(c); break;
             }
         }
         creeps[c].runLogic();

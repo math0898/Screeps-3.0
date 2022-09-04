@@ -43,6 +43,7 @@ export class SugaRoom {
         var room = this.getRoom(); // TODO: Allow an array of spawn targets.
         if (room.memory.census == undefined) room.memory.spawnTarget = "harvester";
         else if (room.memory.census["harvester"] == undefined || room.memory.census["harvester"] < 3) room.memory.spawnTarget = "harvester";
+        else if (room.memory.census["upgrader"] == undefined || room.memory.census["upgrader"] < 3) room.memory.spawnTarget = "upgrader";
         else room.memory.spawnTarget = undefined;
 
         if (room.memory.fill == undefined 

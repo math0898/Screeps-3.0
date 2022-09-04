@@ -1,4 +1,5 @@
 import { Harvester } from "./creeps/economy/Harvester";
+import { Upgrader } from "./creeps/economy/Upgrader";
 
 /**
  * Spawns don't need have their own object each so we need only define a function. Hance the static methods.
@@ -26,12 +27,17 @@ export class Spawns {
         let spawn = Game.spawns[s];
         if (spawn.room.memory.spawnTarget != undefined) {
             var c = -1;
+            var n;
             switch (spawn.room.memory.spawnTarget) { // TODO: Make getBody() static.
-                case "harvester": 
-                    c = spawn.spawnCreep(new Harvester("").getBody(10, 300), this.generateName(spawn.room.name, "Harvester")); 
+                case "harvester":
+                    n = "Harvester"
+                    c = spawn.spawnCreep(new Harvester("").getBody(10, 300), this.generateName(spawn.room.name, n)); 
                     break;
+                case "upgrader":
+                    n = "Upgrader"
+                    c = spawn.spawnCreep(new Upgrader("").getBody(10, 300), this.generateName(spawn.room.name, n));
             } // TODO: Finding the name needs to be done differently.
-            if (c == OK) Game.creeps[this.generateName(spawn.room.name, "Harvester")].memory.role = spawn.room.memory.spawnTarget; 
+            if (c == OK) Game.creeps[this.generateName(spawn.room.name, n)].memory.role = spawn.room.memory.spawnTarget; 
         }
     }
 }
