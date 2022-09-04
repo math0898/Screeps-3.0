@@ -92,6 +92,80 @@ class SmartCreep {
 }
 
 /**
+ * CombatCreeps are related to the general fighting aspects of the game.
+ * 
+ * @author Sugaku
+ */
+class CombatCreep extends SmartCreep {
+
+    /**
+     * Creates a new CombatCreep with the given Creep reference.
+     * 
+     * @param {string} c The name of the Creep object of this SmartCreep. 
+     */
+    constructor (c) {
+        super(c);
+        if (c == "") return;
+        let creep = this.getCreep();
+        creep.memory.homeRoom = creep.room.name;
+    }
+
+    /**
+     * Announces the role of this creep to creep.say().
+     */
+    announceRole () {
+        let creep = this.getCreep();
+        creep.say("⚔ " + creep.memory.role);
+    }
+
+    /**
+     * Called to have this creep add itself to the creep counts of their home room.
+     */
+    countSelf () {
+        let creep = this.getCreep();
+        let role = creep.memory.role;
+        let mem = Game.rooms[creep.memory.homeRoom].memory;
+        if (mem.census[role] == undefined) mem.census[role] = 0;
+        mem.census[role] += 1;
+    }
+}
+
+/**
+ * Scouts are very simple creeps with a single move part.
+ * 
+ * @author Sugaku
+ */
+class Scout extends CombatCreep {
+    
+    /**
+     * Creates a new CombatCreep with the given Creep reference.
+     * 
+     * @param {string} c The name of the Creep object of this SmartCreep. 
+     */
+    constructor (c) {
+        super(c);
+        if (c == "") return;
+        let creep = this.getCreep();
+        if (Game.flags["Scout " + creep.room.name] == undefined) {
+            creep.suicide();
+            return;
+        }
+        creep.memory.target = Game.flags["Scout " + creep.room.name].pos.roomName;
+    }
+
+    /**
+     * Runs the logic for this creep.
+     * 
+     * @return {Number} 0 - The logic ran successfully.
+     */
+    runLogic () {
+        let creep = this.getCreep();
+        creep.say('🛰', true);
+        if (creep.memory.target != undefined) this.smartMove(new RoomPosition(25, 25, creep.memory.target));
+    }
+}
+
+/**
  * EconomicCreeps are related to the general economy of the creep civilization. They aren't given special privileges such
  * as O(n) calls.
  * 
@@ -234,8 +308,13 @@ class Spawns {
                 case "upgrader":
                     n = "Upgrader";
                     c = spawn.spawnCreep(new Upgrader("").getBody(10, 300), this.generateName(spawn.room.name, n));
+                    break;
+                case "scout":
+                    n = "Scout";
+                    c = spawn.spawnCreep(new Scout("").getBody(10, 300), this.generateName(spawn.room.name, n));
+                    break;
             } // TODO: Finding the name needs to be done differently.
-            if (c == OK) Game.creeps[this.generateName(spawn.room.name, n)].memory.role = spawn.room.memory.spawnTarget; 
+            if (c == OK) Game.creeps[this.generateName(spawn.room.name, n)].memory.role = spawn.room.memory.spawnTarget;
         }
     }
 }
@@ -284,6 +363,7 @@ class SugaRoom {
     runLogic () {
         var room = this.getRoom(); // TODO: Allow an array of spawn targets.
         if (room.memory.census == undefined) room.memory.spawnTarget = "harvester";
+        else if (Game.flags["Scout " + room.name] != undefined && (room.memory.census["scout"] == undefined | room.memory.census["scout"] < 1)) room.memory.spawnTarget = "scout";
         else if (room.memory.census["harvester"] == undefined || room.memory.census["harvester"] < 3) room.memory.spawnTarget = "harvester";
         else if (room.memory.census["upgrader"] == undefined || room.memory.census["upgrader"] < 3) room.memory.spawnTarget = "upgrader";
         else room.memory.spawnTarget = undefined;
@@ -333,6 +413,7 @@ function creepAI () {
             switch (Game.creeps[c].memory.role) {
                 case "harvester": creeps[c] = new Harvester(c); break;
                 case "upgrader": creeps[c] = new Upgrader(c); break;
+                case "scout": creeps[c] = new Scout(c); break;
             }
         }
         creeps[c].runLogic();

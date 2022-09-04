@@ -6,6 +6,7 @@ import { SugaRoom } from "./Room";
 import { Harvester } from "./creeps/economy/Harvester";
 import { Miner } from "./creeps/economy/Miner";
 import { Upgrader } from "./creeps/economy/Upgrader";
+import { Scout } from "./creeps/combat/Scout";
 
 var rooms;
 var visuals = new Array();
@@ -35,6 +36,7 @@ function creepAI () {
             switch (Game.creeps[c].memory.role) {
                 case "harvester": creeps[c] = new Harvester(c); break;
                 case "upgrader": creeps[c] = new Upgrader(c); break;
+                case "scout": creeps[c] = new Scout(c); break;
             }
         }
         creeps[c].runLogic();
