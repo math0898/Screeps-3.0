@@ -1,3 +1,5 @@
+_ = require('lodash');
+
 /**
  * An inferior version of a room with some more advanced logic when needed.
  * 
@@ -49,6 +51,22 @@ export class SugaRoom {
         if (room.memory.census["harvester"] == undefined || room.memory.census["harvester"] < 3) room.memory.spawnTarget.push("harvester");
         if (room.memory.census["upgrader"] == undefined || room.memory.census["upgrader"] < 3) room.memory.spawnTarget.push("upgrader");
         if (room.memory.spawnTarget.length == 0) room.memory.spawnTarget = undefined;
+    }
+
+    /**
+     * Identifies jobs for this room.
+     */
+    identifyJobs () {
+        let room = this.getRoom();
+
+        const pastJobs = _.cloneDeep(room.memory.jobs.deepClone);
+        room.memory.jobs = [];
+
+        for (let j in pastJobs) if (pastJobs[j].progress >= pastJobs[j].total) room.memory.jobs.push(pastJobs[j]);
+
+        // TODO: Verify existing jobs not done. Remove missing jobs.
+        // TODO: Find new jobs until reaching a cap.
+        
     }
 
     /**

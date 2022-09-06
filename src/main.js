@@ -2,7 +2,7 @@ console.log("Code Refreshed");
 
 let _ = require('lodash');
 import { Spawns } from "./Spawn";
-import { SugaRoom } from "./Room";
+import { SugaRoom } from "./rooms/Room";
 import { Harvester } from "./creeps/economy/Harvester";
 import { Miner } from "./creeps/economy/Miner";
 import { Upgrader } from "./creeps/economy/Upgrader";
